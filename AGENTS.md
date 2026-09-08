@@ -86,3 +86,11 @@ Before concluding any code changes:
 1. Run `npx tsc --noEmit` from the repository root. Ensure 0 errors.
 2. Check `git diff` to ensure no comments were added to any source files.
 3. Ensure no trailing unused imports or variables exist.
+
+---
+
+## 5. Future Roadmap & Architecture
+
+Consult `PLAN.md` for architectural blueprints, technical specifications, and phase breakdowns regarding:
+- Seed-based procedural terrain, track geometry, and signaling generation.
+- Real-time authoritative multiplayer, 1D track coordinate replication, and rolling stock shunting/coupling.

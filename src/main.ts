@@ -23,6 +23,7 @@ class Game {
   private mouseDownPos: { x: number; y: number } = { x: 0, y: 0 };
   private touchStartPos: { x: number; y: number } = { x: 0, y: 0 };
   private touchStartTime: number = 0;
+  private lastTouchEndTime: number = 0;
 
   constructor() {
     this.canvas = document.getElementById('game-canvas') as HTMLCanvasElement;
@@ -62,11 +63,19 @@ class Game {
     const container = document.getElementById('canvas-container')!;
 
     container.addEventListener('mousedown', (e) => {
+      if (performance.now() - this.lastTouchEndTime < 600) {
+        return;
+      }
+
       this.mouseDownPos = { x: e.clientX, y: e.clientY };
       this.camera.onMouseDown(e);
     });
 
     window.addEventListener('mousemove', (e) => {
+      if (performance.now() - this.lastTouchEndTime < 600) {
+        return;
+      }
+
       this.camera.onMouseMove(e);
 
       const width = this.canvas.width / this.dpr;
@@ -93,6 +102,12 @@ class Game {
     });
 
     window.addEventListener('mouseup', (e) => {
+      if (performance.now() - this.lastTouchEndTime < 600) {
+        this.camera.onMouseUp();
+        container.style.cursor = 'grab';
+        return;
+      }
+
       const dragDist = Math.hypot(e.clientX - this.mouseDownPos.x, e.clientY - this.mouseDownPos.y);
 
       if (dragDist < 6) {
@@ -100,7 +115,7 @@ class Game {
         const height = this.canvas.height / this.dpr;
         const world = this.camera.screenToWorld(e.clientX, e.clientY, width, height);
 
-        this.handleWorldClick(world.x, world.y);
+        this.handleWorldClick(world.x, world.y, 22);
       }
 
       this.camera.onMouseUp();
@@ -108,6 +123,8 @@ class Game {
     });
 
     container.addEventListener('touchstart', (e) => {
+      this.lastTouchEndTime = performance.now();
+
       if (e.touches.length === 1) {
         this.touchStartPos = { x: e.touches[0].clientX, y: e.touches[0].clientY };
         this.touchStartTime = Date.now();
@@ -125,31 +142,38 @@ class Game {
     }, { passive: false });
 
     window.addEventListener('touchend', (e) => {
+      this.lastTouchEndTime = performance.now();
+
       if (e.changedTouches.length === 1 && this.camera.isDragging <= 1) {
         const touch = e.changedTouches[0];
         const dist = Math.hypot(touch.clientX - this.touchStartPos.x, touch.clientY - this.touchStartPos.y);
         const elapsed = Date.now() - this.touchStartTime;
 
         if (dist < 18 && elapsed < 450) {
+          if (e.cancelable) {
+            e.preventDefault();
+          }
+
           const width = this.canvas.width / this.dpr;
           const height = this.canvas.height / this.dpr;
           const world = this.camera.screenToWorld(touch.clientX, touch.clientY, width, height);
 
-          this.handleWorldClick(world.x, world.y, 32);
+          this.handleWorldClick(world.x, world.y, 22);
         }
       }
 
       this.camera.onTouchEnd();
-    });
+    }, { passive: false });
 
     window.addEventListener('touchcancel', () => {
+      this.lastTouchEndTime = performance.now();
       this.camera.onTouchEnd();
     });
 
     container.addEventListener('wheel', (e) => this.camera.onWheel(e), { passive: false });
   }
 
-  private handleWorldClick(worldX: number, worldY: number, radius: number = 26): void {
+  private handleWorldClick(worldX: number, worldY: number, radius: number = 22): void {
     const clickedSwitch = this.trackNet.findSwitchAt(worldX, worldY, radius);
 
     if (clickedSwitch) {

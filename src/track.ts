@@ -615,14 +615,20 @@ export class TrackNetwork {
     return sw.state;
   }
 
-  public findSwitchAt(worldX: number, worldY: number, radius: number = 24): JunctionSwitch | null {
+  public findSwitchAt(worldX: number, worldY: number, radius: number = 22): JunctionSwitch | null {
+    let closest: JunctionSwitch | null = null;
+    let minDist = radius;
+
     for (const sw of this.switches) {
       const d = Math.hypot(sw.worldX - worldX, sw.worldY - worldY);
 
-      if (d <= radius) return sw;
+      if (d <= minDist) {
+        minDist = d;
+        closest = sw;
+      }
     }
 
-    return null;
+    return closest;
   }
 
   public render(ctx: CanvasRenderingContext2D): void {

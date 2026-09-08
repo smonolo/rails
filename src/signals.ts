@@ -371,49 +371,59 @@ export class SignalManager {
   }
 
   public toggleSignalAt(worldX: number, worldY: number, radius: number = 22): { signal: Signal; message: string } | null {
+    let closest: Signal | null = null;
+    let minDist = radius;
+
     for (const sig of this.signals) {
       if (sig.worldX !== undefined && sig.worldY !== undefined) {
         const d = Math.hypot(sig.worldX - worldX, sig.worldY - worldY);
 
-        if (d <= radius) {
-          if (sig.type === 'primary') {
-            const nextAspect: SignalAspect = sig.aspect === 'red' ? 'green' : 'red';
-            sig.manualAspect = nextAspect;
-            sig.manualOverride = true;
-            sig.aspect = nextAspect;
-
-            const linkedSec = this.signals.find(s => s.linkedPrimaryId === sig.id);
-
-            if (linkedSec) {
-              linkedSec.aspect = nextAspect === 'red' ? 'yellow' : 'green';
-              linkedSec.manualAspect = linkedSec.aspect;
-              linkedSec.manualOverride = true;
-            }
-
-            const aspectLabel = sig.aspect === 'red' ? 'Hp 0 (Stop)' : 'Hp 1 (Clear)';
-            const msg = `${sig.name} Aspect: ${aspectLabel}`;
-
-            return { signal: sig, message: msg };
-          } else {
-            const linkedPrim = this.signals.find(s => s.id === sig.linkedPrimaryId);
-
-            if (linkedPrim) {
-              const nextPrimAspect: SignalAspect = linkedPrim.aspect === 'red' ? 'green' : 'red';
-              linkedPrim.manualAspect = nextPrimAspect;
-              linkedPrim.manualOverride = true;
-              linkedPrim.aspect = nextPrimAspect;
-
-              sig.aspect = nextPrimAspect === 'red' ? 'yellow' : 'green';
-              sig.manualAspect = sig.aspect;
-              sig.manualOverride = true;
-
-              const aspectLabel = sig.aspect === 'yellow' ? 'Vr 0 (Expect Stop)' : 'Vr 1 (Expect Clear)';
-              const msg = `${sig.name} Aspect: ${aspectLabel}`;
-
-              return { signal: sig, message: msg };
-            }
-          }
+        if (d <= minDist) {
+          minDist = d;
+          closest = sig;
         }
+      }
+    }
+
+    if (!closest) return null;
+
+    const sig = closest;
+
+    if (sig.type === 'primary') {
+      const nextAspect: SignalAspect = sig.aspect === 'red' ? 'green' : 'red';
+      sig.manualAspect = nextAspect;
+      sig.manualOverride = true;
+      sig.aspect = nextAspect;
+
+      const linkedSec = this.signals.find(s => s.linkedPrimaryId === sig.id);
+
+      if (linkedSec) {
+        linkedSec.aspect = nextAspect === 'red' ? 'yellow' : 'green';
+        linkedSec.manualAspect = linkedSec.aspect;
+        linkedSec.manualOverride = true;
+      }
+
+      const aspectLabel = sig.aspect === 'red' ? 'Hp 0 (Stop)' : 'Hp 1 (Clear)';
+      const msg = `${sig.name} Aspect: ${aspectLabel}`;
+
+      return { signal: sig, message: msg };
+    } else {
+      const linkedPrim = this.signals.find(s => s.id === sig.linkedPrimaryId);
+
+      if (linkedPrim) {
+        const nextPrimAspect: SignalAspect = linkedPrim.aspect === 'red' ? 'green' : 'red';
+        linkedPrim.manualAspect = nextPrimAspect;
+        linkedPrim.manualOverride = true;
+        linkedPrim.aspect = nextPrimAspect;
+
+        sig.aspect = nextPrimAspect === 'red' ? 'yellow' : 'green';
+        sig.manualAspect = sig.aspect;
+        sig.manualOverride = true;
+
+        const aspectLabel = sig.aspect === 'yellow' ? 'Vr 0 (Expect Stop)' : 'Vr 1 (Expect Clear)';
+        const msg = `${sig.name} Aspect: ${aspectLabel}`;
+
+        return { signal: sig, message: msg };
       }
     }
 
