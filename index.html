@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Rails</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <div id="canvas-container">
+      <canvas id="game-canvas"></canvas>
+    </div>
+
+    <div id="warning-banner" class="hidden">
+      <div class="warning-badge" id="warning-badge">Alert</div>
+      <div class="warning-body">
+        <div class="warning-title" id="warning-title">Signal passed at danger</div>
+        <div class="warning-desc" id="warning-desc">Emergency brake tripped.</div>
+      </div>
+      <button class="warning-btn hidden" id="warning-reset-btn">Reset</button>
+    </div>
+
+    <div id="hud-overlay">
+      <div class="hud-top-row">
+        <div class="hud-panel hud-telemetry">
+          <div class="speed-box">
+            <span class="speed-num" id="hud-speed-num">0</span>
+            <span class="speed-unit">km/h</span>
+          </div>
+          <div class="station-status-box" id="hud-station-info">
+            <span class="status-primary">Calculating next station...</span>
+          </div>
+          <div class="signal-status-box">
+            <div class="signal-dot" id="hud-signal-dot"></div>
+            <span id="hud-signal-info">Signals active</span>
+          </div>
+        </div>
+
+        <div class="dropdown-wrapper">
+          <button class="hud-btn btn-hamburger" id="btn-dropdown-toggle" title="Menu" aria-label="Menu">
+            <span class="hamburger-icon">
+              <span></span>
+              <span></span>
+              <span></span>
+            </span>
+          </button>
+          <div class="dropdown-menu hidden" id="dropdown-menu">
+            <button class="dropdown-item" id="btn-menu-center">
+              <span class="item-icon">⊙</span>
+              <span>Center camera</span>
+              <span class="item-shortcut">C</span>
+            </button>
+            <button class="dropdown-item" id="btn-menu-respawn">
+              <span class="item-icon">⟳</span>
+              <span>Respawn train</span>
+              <span class="item-shortcut">R</span>
+            </button>
+            <div class="dropdown-divider"></div>
+            <button class="dropdown-item" id="btn-menu-controls">
+              <span class="item-icon">?</span>
+              <span>Controls & help</span>
+              <span class="item-shortcut">H</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="hud-bottom-row">
+        <div class="hud-panel train-config-card">
+          <div class="card-header">
+            <span class="card-title">Train Configuration</span>
+          </div>
+          <div class="consist-row">
+            <span class="consist-label">Carriages</span>
+            <div class="consist-stepper">
+              <button class="consist-btn" id="btn-carr-minus" title="Remove carriage">−</button>
+              <span class="consist-val" id="carr-count-val">3</span>
+              <button class="consist-btn" id="btn-carr-plus" title="Add carriage">+</button>
+            </div>
+            <span class="consist-weight" id="consist-weight-val">194 t</span>
+          </div>
+        </div>
+
+        <div class="driver-stack">
+          <div class="hud-panel eb-card">
+            <button class="btn-eb" id="btn-eb" title="Trip emergency brake (X)">Emergency brake</button>
+          </div>
+
+          <div class="hud-panel driver-console">
+            <div class="reverser-group">
+              <button class="rev-btn" id="btn-rev">Rev</button>
+              <button class="rev-btn" id="btn-neu">Neu</button>
+              <button class="rev-btn active" id="btn-fwd">Fwd</button>
+            </div>
+
+            <div class="levers-container">
+              <div class="lever-col">
+                <span class="lever-label">Throttle</span>
+                <div class="lever-track-wrapper" id="throttle-track">
+                  <div class="lever-fill throttle-fill" id="throttle-bar-fill"></div>
+                  <div class="lever-handle" id="throttle-handle"></div>
+                </div>
+                <span class="lever-value" id="throttle-val">0%</span>
+                <span class="lever-key-hint">W/S</span>
+              </div>
+
+              <div class="lever-col">
+                <span class="lever-label">Brake</span>
+                <div class="lever-track-wrapper" id="brake-track">
+                  <div class="lever-fill brake-fill" id="brake-bar-fill"></div>
+                  <div class="lever-handle" id="brake-handle"></div>
+                </div>
+                <span class="lever-value" id="brake-val">0%</span>
+                <span class="lever-key-hint">Space</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="controls-modal" class="modal-backdrop hidden">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h2 class="modal-title">Controls & Operation</h2>
+          <button class="modal-close-btn" id="btn-close-modal">✕</button>
+        </div>
+
+        <div class="modal-content">
+          <div class="controls-grid">
+            <div class="control-row">
+              <span class="control-desc">Throttle (+1% / -1%)</span>
+              <div class="control-keys">
+                <span class="key-badge">W</span>/<span class="key-badge">S</span> or <span class="key-badge">↑</span>/<span class="key-badge">↓</span>
+              </div>
+            </div>
+            <div class="control-row">
+              <span class="control-desc">Brake (+1% / -1%)</span>
+              <div class="control-keys">
+                <span class="key-badge">Space</span> / <span class="key-badge">V</span>
+              </div>
+            </div>
+            <div class="control-row">
+              <span class="control-desc">Emergency brake</span>
+              <div class="control-keys"><span class="key-badge">X</span></div>
+            </div>
+            <div class="control-row">
+              <span class="control-desc">Reverser (Forward / Neutral / Reverse)</span>
+              <div class="control-keys">
+                <span class="key-badge">F</span>
+                <span class="key-badge">N</span>
+                <span class="key-badge">R</span>
+              </div>
+            </div>
+            <div class="control-row">
+              <span class="control-desc">Pan world & zoom</span>
+              <div class="control-keys">
+                <span class="key-badge">Left drag</span>
+                <span class="key-badge">Scroll wheel</span>
+              </div>
+            </div>
+            <div class="control-row">
+              <span class="control-desc">Center view</span>
+              <div class="control-keys"><span class="key-badge">C</span></div>
+            </div>
+            <div class="control-row">
+              <span class="control-desc">Interactive signals & track switches</span>
+              <div class="control-keys"><span class="key-badge">Click on map</span></div>
+            </div>
+          </div>
+
+          <div class="modal-notes">
+            <p><strong>Signalling:</strong> Primary signals (<span class="key-badge">P</span>) protect occupied blocks and show Red/Green. Secondary distant signals (<span class="key-badge">S</span>) caution upcoming Primary aspects. Click any signal or junction switch on the map to command routes. Passing a Red Primary signal trips emergency brakes (SPAD).</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
