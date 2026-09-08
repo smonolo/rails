@@ -24,7 +24,9 @@ export interface Signal {
   distance: number;
   aspect: SignalAspect;
   side: 1 | -1;
+  direction: 1 | -1;
   manualOverride: boolean;
+  manualAspect?: SignalAspect | null;
   blockId: number;
   linkedPrimaryId?: string;
   worldX?: number;
@@ -34,6 +36,7 @@ export interface Signal {
 export interface Block {
   id: number;
   trackId: number;
+  direction: 1 | -1;
   startDistance: number;
   endDistance: number;
   isOccupied: boolean;
@@ -68,6 +71,8 @@ export interface Station {
 }
 
 export type ReverserPosition = 1 | 0 | -1;
+
+export type TrainType = 'regional' | 'cargo' | 'high_speed';
 
 export interface WarningAlert {
   type: 'danger' | 'warning' | 'info';

@@ -1,4 +1,4 @@
-import type { Signal, Block } from './types.ts';
+import type { Signal, Block, SignalAspect } from './types.ts';
 import { TrackNetwork } from './track.ts';
 
 export class SignalManager {
@@ -7,6 +7,8 @@ export class SignalManager {
   private prevTrainHeadDist: number = 0;
   private prevTrainTrackId: number = 0;
   private hasInitialized: boolean = false;
+  private trainHasMoved: boolean = false;
+  private initialTrainHeadDist: number = 0;
 
   constructor(trackNet: TrackNetwork) {
     this.setupBlocksAndSignals(trackNet);
@@ -20,71 +22,132 @@ export class SignalManager {
       const totalLen = trackNet.tracks[trackId].totalLength;
       const numBlocks = 4;
       const blockLen = totalLen / numBlocks;
-      const trackName = trackId === 0 ? 'Track 1' : 'Track 2';
+      const trackNum = trackId + 1;
+      const side = trackId === 1 ? -1 : 1;
 
       for (let b = 0; b < numBlocks; b++) {
         const blockStart = (b * blockLen) % totalLen;
-        const blockEnd = ((b + 1) * blockLen) % totalLen;
+        const fwdPrimDist = (blockStart + 12) % totalLen;
+        const nextFwdPrimDist = (((b + 1) * blockLen) + 12) % totalLen;
+        let fwdSecDist = (fwdPrimDist - 800 + totalLen) % totalLen;
 
-        const primaryId = `sig-p-t${trackId}-b${b + 1}`;
-        const secondaryId = `sig-s-t${trackId}-b${b + 1}`;
-        const primaryDist = blockStart;
+        const revPrimDist = ((b + 1) * blockLen - 12 + totalLen) % totalLen;
+        const prevRevPrimDist = (b * blockLen - 12 + totalLen) % totalLen;
+        const revSecDist = (revPrimDist + 800) % totalLen;
 
-        let secondaryDist = primaryDist - 800;
+        const fwdPrimId = `sig-hp-t${trackId}-fwd-b${b + 1}`;
+        const fwdSecId = `sig-vr-t${trackId}-fwd-b${b + 1}`;
+        const revPrimId = `sig-hp-t${trackId}-rev-b${b + 1}`;
+        const revSecId = `sig-vr-t${trackId}-rev-b${b + 1}`;
 
-        if (secondaryDist < 0) secondaryDist += totalLen;
+        const pFwdPt = trackNet.getStaticPointAtDistance(trackId, fwdPrimDist);
+        const pFwdPerp = pFwdPt.angle + (Math.PI / 2) * side;
+        const pFwdWorldX = pFwdPt.x + Math.cos(pFwdPerp) * 22;
+        const pFwdWorldY = pFwdPt.y + Math.sin(pFwdPerp) * 22;
 
-        const side = -1;
+        const sFwdPt = trackNet.getStaticPointAtDistance(trackId, fwdSecDist);
+        const sFwdPerp = sFwdPt.angle + (Math.PI / 2) * side;
+        const sFwdWorldX = sFwdPt.x + Math.cos(sFwdPerp) * 22;
+        const sFwdWorldY = sFwdPt.y + Math.sin(sFwdPerp) * 22;
 
-        const pPt = trackNet.getStaticPointAtDistance(trackId, primaryDist);
-        const pPerp = pPt.angle + (Math.PI / 2) * side;
-        const pWorldX = pPt.x + Math.cos(pPerp) * 22;
-        const pWorldY = pPt.y + Math.sin(pPerp) * 22;
+        const pRevPt = trackNet.getStaticPointAtDistance(trackId, revPrimDist);
+        const pRevPerp = pRevPt.angle + (Math.PI / 2) * side;
+        const pRevWorldX = pRevPt.x + Math.cos(pRevPerp) * 22;
+        const pRevWorldY = pRevPt.y + Math.sin(pRevPerp) * 22;
 
-        const sPt = trackNet.getStaticPointAtDistance(trackId, secondaryDist);
-        const sPerp = sPt.angle + (Math.PI / 2) * side;
-        const sWorldX = sPt.x + Math.cos(sPerp) * 22;
-        const sWorldY = sPt.y + Math.sin(sPerp) * 22;
+        const sRevPt = trackNet.getStaticPointAtDistance(trackId, revSecDist);
+        const sRevPerp = sRevPt.angle + (Math.PI / 2) * side;
+        const sRevWorldX = sRevPt.x + Math.cos(sRevPerp) * 22;
+        const sRevWorldY = sRevPt.y + Math.sin(sRevPerp) * 22;
 
-        const primSig: Signal = {
-          id: primaryId,
-          name: `${trackName} Home ${b + 1}`,
+        const primFwd: Signal = {
+          id: fwdPrimId,
+          name: `Hauptsignal Hp ${trackNum}.${b + 1} ▸`,
           trackId,
           type: 'primary',
-          distance: primaryDist,
+          distance: fwdPrimDist,
           aspect: 'green',
           side,
+          direction: 1,
           manualOverride: false,
+          manualAspect: null,
           blockId: b,
-          worldX: pWorldX,
-          worldY: pWorldY
+          worldX: pFwdWorldX,
+          worldY: pFwdWorldY
         };
 
-        const secSig: Signal = {
-          id: secondaryId,
-          name: `${trackName} Distant ${b + 1}`,
+        const secFwd: Signal = {
+          id: fwdSecId,
+          name: `Vorsignal Vr ${trackNum}.${b + 1} ▸`,
           trackId,
           type: 'secondary',
-          distance: secondaryDist,
+          distance: fwdSecDist,
           aspect: 'green',
           side,
+          direction: 1,
           manualOverride: false,
+          manualAspect: null,
           blockId: b,
-          linkedPrimaryId: primaryId,
-          worldX: sWorldX,
-          worldY: sWorldY
+          linkedPrimaryId: fwdPrimId,
+          worldX: sFwdWorldX,
+          worldY: sFwdWorldY
         };
 
-        this.signals.push(primSig, secSig);
+        const primRev: Signal = {
+          id: revPrimId,
+          name: `Hauptsignal Hp ${trackNum}.${b + 1}G ◂`,
+          trackId,
+          type: 'primary',
+          distance: revPrimDist,
+          aspect: 'green',
+          side,
+          direction: -1,
+          manualOverride: false,
+          manualAspect: null,
+          blockId: b + 10,
+          worldX: pRevWorldX,
+          worldY: pRevWorldY
+        };
+
+        const secRev: Signal = {
+          id: revSecId,
+          name: `Vorsignal Vr ${trackNum}.${b + 1}G ◂`,
+          trackId,
+          type: 'secondary',
+          distance: revSecDist,
+          aspect: 'green',
+          side,
+          direction: -1,
+          manualOverride: false,
+          manualAspect: null,
+          blockId: b + 10,
+          linkedPrimaryId: revPrimId,
+          worldX: sRevWorldX,
+          worldY: sRevWorldY
+        };
+
+        this.signals.push(primFwd, secFwd, primRev, secRev);
 
         this.blocks.push({
           id: b,
           trackId,
-          startDistance: blockStart,
-          endDistance: blockEnd,
+          direction: 1,
+          startDistance: fwdPrimDist,
+          endDistance: nextFwdPrimDist,
           isOccupied: false,
-          primarySignalId: primaryId,
-          secondarySignalId: secondaryId
+          primarySignalId: fwdPrimId,
+          secondarySignalId: fwdSecId
+        });
+
+        this.blocks.push({
+          id: b + 10,
+          trackId,
+          direction: -1,
+          startDistance: prevRevPrimDist,
+          endDistance: revPrimDist,
+          isOccupied: false,
+          primarySignalId: revPrimId,
+          secondarySignalId: revSecId
         });
       }
     }
@@ -93,29 +156,56 @@ export class SignalManager {
       const sidingLen = trackNet.tracks[2].totalLength;
       const sPt = trackNet.getStaticPointAtDistance(2, 40);
       const sPerp = sPt.angle - Math.PI / 2;
+      const sWorldX = sPt.x + Math.cos(sPerp) * 20;
+      const sWorldY = sPt.y + Math.sin(sPerp) * 20;
+
+      const vrPt = trackNet.getStaticPointAtDistance(2, 15);
+      const vrPerp = vrPt.angle - Math.PI / 2;
+      const vrWorldX = vrPt.x + Math.cos(vrPerp) * 20;
+      const vrWorldY = vrPt.y + Math.sin(vrPerp) * 20;
 
       this.signals.push({
         id: 'sig-siding-1',
-        name: 'Siding Shunt Signal',
+        name: 'Sperrsignal Sh 1 ▸',
         trackId: 2,
         type: 'primary',
         distance: 40,
-        aspect: 'yellow',
+        aspect: 'green',
         side: -1,
+        direction: 1,
         manualOverride: false,
+        manualAspect: null,
         blockId: 99,
-        worldX: sPt.x + Math.cos(sPerp) * 20,
-        worldY: sPt.y + Math.sin(sPerp) * 20
+        worldX: sWorldX,
+        worldY: sWorldY
+      });
+
+      this.signals.push({
+        id: 'sig-siding-1-vr',
+        name: 'Vorsignal Sh 1 ▸',
+        trackId: 2,
+        type: 'secondary',
+        distance: 15,
+        aspect: 'green',
+        side: -1,
+        direction: 1,
+        manualOverride: false,
+        manualAspect: null,
+        blockId: 99,
+        linkedPrimaryId: 'sig-siding-1',
+        worldX: vrWorldX,
+        worldY: vrWorldY
       });
 
       this.blocks.push({
         id: 99,
         trackId: 2,
+        direction: 1,
         startDistance: 0,
         endDistance: sidingLen,
         isOccupied: false,
         primarySignalId: 'sig-siding-1',
-        secondarySignalId: 'sig-siding-1'
+        secondarySignalId: 'sig-siding-1-vr'
       });
     }
   }
@@ -128,24 +218,33 @@ export class SignalManager {
     trackLength: number
   ): boolean {
     const normalize = (dist: number) => ((dist % trackLength) + trackLength) % trackLength;
+    const bs = normalize(blockStart);
+    let be = normalize(blockEnd);
+
+    if (be <= bs) be += trackLength;
+
     const s = normalize(trainStart);
     const e = normalize(trainEnd);
-    const bs = normalize(blockStart);
-    const be = normalize(blockEnd);
 
-    if (bs < be) {
-      if (s <= e) {
-        return Math.max(s, bs) < Math.min(e, be);
-      } else {
-        return (s < be) || (e > bs);
-      }
+    const spans: [number, number][] = [];
+
+    if (s <= e) {
+      spans.push([s, e]);
+      spans.push([s + trackLength, e + trackLength]);
     } else {
-      if (s <= e) {
-        return (s < be) || (e > bs);
-      } else {
+      spans.push([s, trackLength]);
+      spans.push([0, e]);
+      spans.push([s + trackLength, 2 * trackLength]);
+      spans.push([trackLength, e + trackLength]);
+    }
+
+    for (const [ts, te] of spans) {
+      if (Math.max(ts, bs) < Math.min(te, be)) {
         return true;
       }
     }
+
+    return false;
   }
 
   public update(
@@ -153,12 +252,25 @@ export class SignalManager {
     trainHeadDist: number,
     trainTailDist: number,
     trackNet: TrackNetwork,
-    _dt: number
+    _dt: number,
+    trainFacing: 1 | -1 = 1
   ): { spad: boolean; signalName?: string } {
     if (!this.hasInitialized) {
       this.prevTrainHeadDist = trainHeadDist;
       this.prevTrainTrackId = trainTrackId;
+      this.initialTrainHeadDist = trainHeadDist;
       this.hasInitialized = true;
+    }
+
+    if (this.prevTrainTrackId !== trainTrackId) {
+      this.prevTrainTrackId = trainTrackId;
+      this.prevTrainHeadDist = trainHeadDist;
+      this.initialTrainHeadDist = trainHeadDist;
+      this.trainHasMoved = false;
+    }
+
+    if (!this.trainHasMoved && Math.abs(trainHeadDist - this.initialTrainHeadDist) > 2) {
+      this.trainHasMoved = true;
     }
 
     const currentTrack = trackNet.tracks[trainTrackId];
@@ -166,39 +278,41 @@ export class SignalManager {
     if (!currentTrack) return { spad: false };
 
     const trackLen = currentTrack.totalLength;
-
-    for (const block of this.blocks) {
-      if (block.trackId !== trainTrackId) {
-        block.isOccupied = false;
-        continue;
-      }
-
-      block.isOccupied = this.isSpanOverlappingBlock(
-        trainTailDist,
-        trainHeadDist,
-        block.startDistance,
-        block.endDistance,
-        trackLen
-      );
-    }
+    const activeDir = trainFacing;
 
     let spadOccurred = false;
     let spadSigName = '';
 
-    if (this.prevTrainTrackId === trainTrackId) {
-      let forwardDelta = trainHeadDist - this.prevTrainHeadDist;
+    if (this.prevTrainTrackId === trainTrackId && this.trainHasMoved) {
+      let delta = trainHeadDist - this.prevTrainHeadDist;
 
-      if (forwardDelta < -trackLen / 2) forwardDelta += trackLen;
-      else if (forwardDelta > trackLen / 2) forwardDelta -= trackLen;
+      if (delta < -trackLen / 2) delta += trackLen;
+      else if (delta > trackLen / 2) delta -= trackLen;
 
-      if (forwardDelta > 0) {
+      if (delta > 0.001 && activeDir === 1) {
         for (const sig of this.signals) {
-          if (sig.trackId === trainTrackId && sig.type === 'primary') {
+          if (sig.trackId === trainTrackId && sig.type === 'primary' && sig.direction === 1) {
             let distToSig = (sig.distance - this.prevTrainHeadDist) % trackLen;
 
             if (distToSig < 0) distToSig += trackLen;
 
-            if (distToSig <= forwardDelta && sig.aspect === 'red') {
+            if (distToSig <= delta && sig.aspect === 'red') {
+              spadOccurred = true;
+              spadSigName = sig.name;
+              break;
+            }
+          }
+        }
+      } else if (delta < -0.001 && activeDir === -1) {
+        const absDelta = -delta;
+
+        for (const sig of this.signals) {
+          if (sig.trackId === trainTrackId && sig.type === 'primary' && sig.direction === -1) {
+            let distToSig = (this.prevTrainHeadDist - sig.distance) % trackLen;
+
+            if (distToSig < 0) distToSig += trackLen;
+
+            if (distToSig <= absDelta && sig.aspect === 'red') {
               spadOccurred = true;
               spadSigName = sig.name;
               break;
@@ -209,11 +323,29 @@ export class SignalManager {
     }
 
     for (const block of this.blocks) {
+      if (!this.trainHasMoved || block.trackId !== trainTrackId || block.direction !== activeDir) {
+        block.isOccupied = false;
+        continue;
+      }
+
+      const spanStart = Math.min(trainTailDist, trainHeadDist);
+      const spanEnd = Math.max(trainTailDist, trainHeadDist);
+
+      block.isOccupied = this.isSpanOverlappingBlock(
+        spanStart,
+        spanEnd,
+        block.startDistance,
+        block.endDistance,
+        trackLen
+      );
+    }
+
+    for (const block of this.blocks) {
       const primSig = this.signals.find(s => s.id === block.primarySignalId);
 
       if (primSig) {
-        if (primSig.manualOverride) {
-          primSig.aspect = 'red';
+        if (primSig.manualAspect !== null && primSig.manualAspect !== undefined) {
+          primSig.aspect = primSig.manualAspect;
         } else if (block.isOccupied) {
           primSig.aspect = 'red';
         } else {
@@ -245,31 +377,38 @@ export class SignalManager {
 
         if (d <= radius) {
           if (sig.type === 'primary') {
-            sig.manualOverride = !sig.manualOverride;
-            sig.aspect = sig.manualOverride ? 'red' : 'green';
+            const nextAspect: SignalAspect = sig.aspect === 'red' ? 'green' : 'red';
+            sig.manualAspect = nextAspect;
+            sig.manualOverride = true;
+            sig.aspect = nextAspect;
 
             const linkedSec = this.signals.find(s => s.linkedPrimaryId === sig.id);
 
             if (linkedSec) {
-              linkedSec.aspect = sig.aspect === 'red' ? 'yellow' : 'green';
+              linkedSec.aspect = nextAspect === 'red' ? 'yellow' : 'green';
+              linkedSec.manualAspect = linkedSec.aspect;
+              linkedSec.manualOverride = true;
             }
 
-            const msg = sig.manualOverride
-              ? `${sig.name} set to Stop (Red)`
-              : `${sig.name} set to Auto (Green)`;
+            const aspectLabel = sig.aspect === 'red' ? 'Hp 0 (Stop)' : 'Hp 1 (Clear)';
+            const msg = `${sig.name} Aspect: ${aspectLabel}`;
 
             return { signal: sig, message: msg };
           } else {
             const linkedPrim = this.signals.find(s => s.id === sig.linkedPrimaryId);
 
             if (linkedPrim) {
-              linkedPrim.manualOverride = !linkedPrim.manualOverride;
-              linkedPrim.aspect = linkedPrim.manualOverride ? 'red' : 'green';
-              sig.aspect = linkedPrim.aspect === 'red' ? 'yellow' : 'green';
+              const nextPrimAspect: SignalAspect = linkedPrim.aspect === 'red' ? 'green' : 'red';
+              linkedPrim.manualAspect = nextPrimAspect;
+              linkedPrim.manualOverride = true;
+              linkedPrim.aspect = nextPrimAspect;
 
-              const msg = sig.aspect === 'yellow'
-                ? `${sig.name} Caution: upcoming signal is Stop`
-                : `${sig.name} Clear: upcoming signal is Clear`;
+              sig.aspect = nextPrimAspect === 'red' ? 'yellow' : 'green';
+              sig.manualAspect = sig.aspect;
+              sig.manualOverride = true;
+
+              const aspectLabel = sig.aspect === 'yellow' ? 'Vr 0 (Expect Stop)' : 'Vr 1 (Expect Clear)';
+              const msg = `${sig.name} Aspect: ${aspectLabel}`;
 
               return { signal: sig, message: msg };
             }
@@ -281,16 +420,28 @@ export class SignalManager {
     return null;
   }
 
-  public getNextSignalAhead(trackId: number, trainHeadDist: number, trackLength: number): { signal: Signal; distanceAhead: number } | null {
+  public getNextSignalAhead(
+    trackId: number,
+    trainDist: number,
+    trackLength: number,
+    direction: 1 | -1 = 1
+  ): { signal: Signal; distanceAhead: number } | null {
     let closest: Signal | null = null;
     let minDistance = Infinity;
 
     for (const sig of this.signals) {
       if (sig.trackId !== trackId) continue;
+      if (sig.direction !== direction) continue;
 
-      let delta = (sig.distance - trainHeadDist) % trackLength;
+      let delta: number;
 
-      if (delta < 0) delta += trackLength;
+      if (direction === 1) {
+        delta = (sig.distance - trainDist) % trackLength;
+        if (delta < 0) delta += trackLength;
+      } else {
+        delta = (trainDist - sig.distance) % trackLength;
+        if (delta < 0) delta += trackLength;
+      }
 
       if (delta > 0 && delta < minDistance) {
         minDistance = delta;
@@ -325,7 +476,7 @@ export class SignalManager {
         const r = 10;
 
         ctx.fillStyle = '#121215';
-        ctx.strokeStyle = sig.manualOverride ? '#008cff' : '#ffffff';
+        ctx.strokeStyle = '#ffffff';
         ctx.lineWidth = 1.5;
         ctx.beginPath();
         ctx.arc(0, 0, r, 0, Math.PI * 2);
@@ -337,11 +488,12 @@ export class SignalManager {
         ctx.arc(0, 0, r - 3, 0, Math.PI * 2);
         ctx.fill();
 
-        ctx.font = '700 8px "Geist Mono", monospace';
+        ctx.font = '700 7px "Geist Mono", monospace';
         ctx.fillStyle = '#ffffff';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText('P', 0, 16);
+        const label = sig.direction === 1 ? 'Hp ▸' : '◂ Hp';
+        ctx.fillText(label, 0, 16);
       } else {
         const size = 9;
 
@@ -367,16 +519,32 @@ export class SignalManager {
         ctx.closePath();
         ctx.fill();
 
-        ctx.font = '700 8px "Geist Mono", monospace';
+        ctx.font = '700 7px "Geist Mono", monospace';
         ctx.fillStyle = '#ffffff';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText('S', 0, 16);
+        const label = sig.direction === 1 ? 'Vr ▸' : '◂ Vr';
+        ctx.fillText(label, 0, 16);
       }
 
       ctx.restore();
     }
 
     ctx.restore();
+  }
+
+  public reset(): void {
+    this.hasInitialized = false;
+    this.trainHasMoved = false;
+
+    for (const sig of this.signals) {
+      sig.manualAspect = null;
+      sig.manualOverride = false;
+      sig.aspect = 'green';
+    }
+
+    for (const block of this.blocks) {
+      block.isOccupied = false;
+    }
   }
 }

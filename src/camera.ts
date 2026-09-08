@@ -19,8 +19,11 @@ export class Camera {
   private dragStartY: number = 0;
   public isUserPanning: boolean = false;
 
-  public minZoom: number = 0.45;
-  public maxZoom: number = 2.2;
+  private touchStartDist: number = 0;
+  private touchStartZoom: number = 1.0;
+
+  public minZoom: number = 0.35;
+  public maxZoom: number = 2.4;
 
   public readonly worldBounds: WorldBounds = {
     minX: 100,
@@ -100,7 +103,7 @@ export class Camera {
   }
 
   public onMouseMove(e: MouseEvent): void {
-    if (this.isDragging) {
+    if (this.isDragging === 1) {
       const dx = (e.clientX - this.dragStartX) / this.zoom;
       const dy = (e.clientY - this.dragStartY) / this.zoom;
 
@@ -128,5 +131,50 @@ export class Camera {
     const zoomDelta = e.deltaY < 0 ? 1.15 : 0.85;
 
     this.targetZoom = Math.max(this.minZoom, Math.min(this.maxZoom, this.targetZoom * zoomDelta));
+  }
+
+  public onTouchStart(e: TouchEvent): void {
+    if (e.touches.length === 1) {
+      this.isDragging = 1;
+      this.dragStartX = e.touches[0].clientX;
+      this.dragStartY = e.touches[0].clientY;
+    } else if (e.touches.length >= 2) {
+      this.isDragging = 2;
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      this.touchStartDist = Math.hypot(dx, dy) || 1;
+      this.touchStartZoom = this.targetZoom;
+    }
+  }
+
+  public onTouchMove(e: TouchEvent): void {
+    if (e.touches.length === 1 && this.isDragging === 1) {
+      const dx = (e.touches[0].clientX - this.dragStartX) / this.zoom;
+      const dy = (e.touches[0].clientY - this.dragStartY) / this.zoom;
+
+      if (Math.hypot(dx, dy) > 3) {
+        this.isUserPanning = true;
+      }
+
+      this.targetX -= dx;
+      this.targetY -= dy;
+
+      this.clampTarget();
+
+      this.dragStartX = e.touches[0].clientX;
+      this.dragStartY = e.touches[0].clientY;
+    } else if (e.touches.length >= 2 && this.isDragging === 2) {
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      const currentDist = Math.hypot(dx, dy) || 1;
+      const ratio = currentDist / this.touchStartDist;
+
+      this.targetZoom = Math.max(this.minZoom, Math.min(this.maxZoom, this.touchStartZoom * ratio));
+      this.isUserPanning = true;
+    }
+  }
+
+  public onTouchEnd(): void {
+    this.isDragging = 0;
   }
 }

@@ -15,66 +15,66 @@ export class StationManager {
   private createStations(): void {
     this.stations = [
       {
-        id: 'stn-t0-hlr',
-        name: 'Highland Ridge',
-        code: 'HLR',
+        id: 'stn-t0-kbc',
+        name: 'Kronberg Central',
+        code: 'KBC',
         trackId: 0,
         distance: 497,
         platformLength: 120
       },
       {
-        id: 'stn-t0-epg',
-        name: 'Eastport Gateway',
-        code: 'EPG',
+        id: 'stn-t0-wwj',
+        name: 'Westerwald Junction',
+        code: 'WWJ',
         trackId: 0,
         distance: 1770,
         platformLength: 120
       },
       {
-        id: 'stn-t0-sjv',
-        name: 'St. Jude Valley',
-        code: 'SJV',
+        id: 'stn-t0-etn',
+        name: 'Eisental Nord',
+        code: 'ETN',
         trackId: 0,
         distance: 3039,
         platformLength: 120
       },
       {
-        id: 'stn-t0-wpt',
-        name: 'Westport Terminal',
-        code: 'WPT',
+        id: 'stn-t0-lht',
+        name: 'Lindenhafen Terminus',
+        code: 'LHT',
         trackId: 0,
         distance: 4257,
         platformLength: 120,
         isTerminal: true
       },
       {
-        id: 'stn-t1-hlr',
-        name: 'Highland Ridge',
-        code: 'HLR',
+        id: 'stn-t1-kbc',
+        name: 'Kronberg Central',
+        code: 'KBC',
         trackId: 1,
         distance: 511,
         platformLength: 120
       },
       {
-        id: 'stn-t1-epg',
-        name: 'Eastport Gateway',
-        code: 'EPG',
+        id: 'stn-t1-wwj',
+        name: 'Westerwald Junction',
+        code: 'WWJ',
         trackId: 1,
         distance: 1853,
         platformLength: 120
       },
       {
-        id: 'stn-t1-sjv',
-        name: 'St. Jude Valley',
-        code: 'SJV',
+        id: 'stn-t1-etn',
+        name: 'Eisental Nord',
+        code: 'ETN',
         trackId: 1,
         distance: 3191,
         platformLength: 120
       },
       {
-        id: 'stn-t1-wpt',
-        name: 'Westport Terminal',
-        code: 'WPT',
+        id: 'stn-t1-lht',
+        name: 'Lindenhafen Terminus',
+        code: 'LHT',
         trackId: 1,
         distance: 4477,
         platformLength: 120,

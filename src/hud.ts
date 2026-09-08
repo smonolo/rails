@@ -3,7 +3,7 @@ import { StationManager, type StationStatus } from './stations.ts';
 import { SignalManager } from './signals.ts';
 import { TrackNetwork } from './track.ts';
 import { Camera } from './camera.ts';
-import type { WarningAlert } from './types.ts';
+import type { WarningAlert, TrainType } from './types.ts';
 
 export class HUD {
   private train: Train;
@@ -13,6 +13,7 @@ export class HUD {
   private camera: Camera;
 
   private speedEl!: HTMLElement;
+  private gMeterEl!: HTMLElement;
   private stationInfoEl!: HTMLElement;
   private signalInfoEl!: HTMLElement;
   private signalDotEl!: HTMLElement;
@@ -62,6 +63,7 @@ export class HUD {
 
   private bindDom(): void {
     this.speedEl = document.getElementById('hud-speed-num')!;
+    this.gMeterEl = document.getElementById('hud-g-meter')!;
     this.stationInfoEl = document.getElementById('hud-station-info')!;
     this.signalInfoEl = document.getElementById('hud-signal-info')!;
     this.signalDotEl = document.getElementById('hud-signal-dot')!;
@@ -121,6 +123,21 @@ export class HUD {
       this.dropdownMenuEl.classList.add('hidden');
     });
 
+    const setType = (type: TrainType) => {
+      this.train.setTrainType(type);
+      document.querySelectorAll('.type-btn').forEach(btn => btn.classList.remove('active'));
+
+      if (type === 'regional') document.getElementById('btn-type-regional')?.classList.add('active');
+      if (type === 'cargo') document.getElementById('btn-type-cargo')?.classList.add('active');
+      if (type === 'high_speed') document.getElementById('btn-type-highspeed')?.classList.add('active');
+
+      this.updateConsistDisplay();
+    };
+
+    document.getElementById('btn-type-regional')?.addEventListener('click', () => setType('regional'));
+    document.getElementById('btn-type-cargo')?.addEventListener('click', () => setType('cargo'));
+    document.getElementById('btn-type-highspeed')?.addEventListener('click', () => setType('high_speed'));
+
     this.btnCarrMinus?.addEventListener('click', () => {
       if (this.train.carriageCount > 0) {
         this.train.setCarriageCount(this.train.carriageCount - 1);
@@ -133,6 +150,10 @@ export class HUD {
         this.train.setCarriageCount(this.train.carriageCount + 1);
         this.updateConsistDisplay();
       }
+    });
+
+    document.getElementById('btn-invert-train')?.addEventListener('click', () => {
+      this.train.invert(this.trackNet);
     });
 
     this.btnEb?.addEventListener('click', () => {
@@ -333,8 +354,8 @@ export class HUD {
 
     this.triggerAlert({
       type: 'danger',
-      title: 'Emergency brake tripped',
-      message: `${reason}. Wait until train comes to a complete stop to reset.`,
+      title: 'Emergency brake enforcement active',
+      message: `${reason}. Train must come to a complete standstill to reset.`,
       canReset: false
     });
   }
@@ -420,13 +441,33 @@ export class HUD {
     const speed = this.train.speedKmH;
     this.speedEl.textContent = `${speed}`;
 
+    const gVal = this.train.currentLateralG;
+    this.gMeterEl.textContent = `${gVal.toFixed(2)} G`;
+
+    const critG = +(this.train.criticalLateralAcc / 9.81).toFixed(2);
+
+    if (gVal >= critG * 0.8) {
+      this.gMeterEl.className = 'g-meter danger';
+    } else if (gVal >= critG * 0.55) {
+      this.gMeterEl.className = 'g-meter warn';
+    } else {
+      this.gMeterEl.className = 'g-meter';
+    }
+
     this.updateConsistDisplay();
 
     if (this.activeAlert) {
       if (this.train.isCrashed) {
-        this.warningBadgeEl.textContent = 'CRASH';
-        this.warningTitleEl.textContent = 'Train crashed';
-        this.warningDescEl.textContent = 'Collision with buffer stop at terminal dead track. Respawn required.';
+        if (this.train.isDerailed) {
+          this.warningBadgeEl.textContent = 'DERAILED';
+          this.warningTitleEl.textContent = 'Train derailed';
+          this.warningDescEl.textContent = this.train.crashReason || 'Excessive lateral speed through curve. Respawn required.';
+        } else {
+          this.warningBadgeEl.textContent = 'CRASH';
+          this.warningTitleEl.textContent = 'Train crashed';
+          this.warningDescEl.textContent = this.train.crashReason || 'Collision with buffer stop at terminal dead track. Respawn required.';
+        }
+
         this.warningResetBtnEl.textContent = 'Respawn';
         this.warningResetBtnEl.classList.remove('hidden');
       } else if (this.train.isEmergencyBrakeLocked) {
@@ -454,14 +495,28 @@ export class HUD {
       this.stationInfoEl.innerHTML = `<span>Line clear</span><br/><span class="sub">Cruising</span>`;
     }
 
-    const nextSig = this.signalMgr.getNextSignalAhead(this.train.trackId, this.train.distance, currentTrackLen);
+    const nextSig = this.signalMgr.getNextSignalAhead(
+      this.train.trackId,
+      this.train.distance,
+      currentTrackLen,
+      this.train.facing
+    );
 
     if (nextSig) {
       const distM = Math.round(nextSig.distanceAhead);
-      const aspect = nextSig.signal.aspect.charAt(0).toUpperCase() + nextSig.signal.aspect.slice(1);
-      const typeTag = nextSig.signal.type === 'primary' ? 'P' : 'S';
+      let aspectLabel = 'Hp 1 (Clear)';
 
-      this.signalInfoEl.textContent = `[${typeTag}] ${nextSig.signal.name} (${distM} m) - ${aspect}`;
+      if (nextSig.signal.aspect === 'red') {
+        aspectLabel = 'Hp 0 (Stop)';
+      } else if (nextSig.signal.aspect === 'yellow') {
+        aspectLabel = 'Vr 0 (Expect Stop)';
+      } else if (nextSig.signal.type === 'secondary') {
+        aspectLabel = 'Vr 1 (Expect Clear)';
+      }
+
+      const typeTag = nextSig.signal.type === 'primary' ? 'Hp' : 'Vr';
+
+      this.signalInfoEl.textContent = `[${typeTag}] ${nextSig.signal.name} (${distM} m) - ${aspectLabel}`;
 
       let color = '#10b981';
 

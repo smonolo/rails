@@ -16,7 +16,7 @@ export class TrackNetwork {
   public tracks: { points: TrackPoint[]; totalLength: number }[] = [];
   public switches: JunctionSwitch[] = [];
   public crossoverZones: CrossoverZone[] = [];
-  public readonly trackSpacing = 44;
+  public readonly trackSpacing = 27;
 
   constructor() {
     this.buildTracks();
@@ -141,8 +141,8 @@ export class TrackNetwork {
       return { points: pts, totalLength: dist };
     };
 
-    const track0 = generateOffsetTrack(22);
-    const track1 = generateOffsetTrack(-22);
+    const track0 = generateOffsetTrack(13.5);
+    const track1 = generateOffsetTrack(-13.5);
 
     this.tracks.push(track0, track1);
 
@@ -220,8 +220,82 @@ export class TrackNetwork {
       totalLength: turnoutCurve.totalLength
     });
 
-    const startDistT0 = 2841;
-    const endDistT1 = 3191;
+    const startDistNorthT0 = 185.8;
+    const endDistNorthT1 = 367.2;
+    const pStartNorthT0 = this.getStaticPointAtDistance(0, startDistNorthT0);
+    const pEndNorthT1 = this.getStaticPointAtDistance(1, endDistNorthT1);
+
+    const curveNorth0to1 = this.sampleBézierCurve(
+      { x: pStartNorthT0.x, y: pStartNorthT0.y, angle: pStartNorthT0.angle },
+      { x: pEndNorthT1.x, y: pEndNorthT1.y, angle: pEndNorthT1.angle },
+      50
+    );
+
+    this.switches.push({
+      id: 'sw-crossover-north-0-1',
+      name: 'North Crossover (Track 1 → 2)',
+      fromTrackId: 0,
+      toTrackId: 1,
+      fromDistance: startDistNorthT0,
+      toDistance: startDistNorthT0 + curveNorth0to1.totalLength,
+      state: 'straight',
+      length: curveNorth0to1.totalLength,
+      path: curveNorth0to1.points,
+      worldX: pStartNorthT0.x,
+      worldY: pStartNorthT0.y
+    });
+
+    this.crossoverZones.push({
+      switchId: 'sw-crossover-north-0-1',
+      fromTrackId: 0,
+      toTrackId: 1,
+      startDistance: startDistNorthT0,
+      endDistance: startDistNorthT0 + curveNorth0to1.totalLength,
+      targetStartDistance: endDistNorthT1 - curveNorth0to1.totalLength,
+      targetEndDistance: endDistNorthT1,
+      path: curveNorth0to1.points,
+      totalLength: curveNorth0to1.totalLength
+    });
+
+    const startDistNorthT1 = 190.1;
+    const endDistNorthT0 = 360.6;
+    const pStartNorthT1 = this.getStaticPointAtDistance(1, startDistNorthT1);
+    const pEndNorthT0 = this.getStaticPointAtDistance(0, endDistNorthT0);
+
+    const curveNorth1to0 = this.sampleBézierCurve(
+      { x: pStartNorthT1.x, y: pStartNorthT1.y, angle: pStartNorthT1.angle },
+      { x: pEndNorthT0.x, y: pEndNorthT0.y, angle: pEndNorthT0.angle },
+      50
+    );
+
+    this.switches.push({
+      id: 'sw-crossover-north-1-0',
+      name: 'North Crossover (Track 2 → 1)',
+      fromTrackId: 1,
+      toTrackId: 0,
+      fromDistance: startDistNorthT1,
+      toDistance: startDistNorthT1 + curveNorth1to0.totalLength,
+      state: 'straight',
+      length: curveNorth1to0.totalLength,
+      path: curveNorth1to0.points,
+      worldX: pStartNorthT1.x,
+      worldY: pStartNorthT1.y
+    });
+
+    this.crossoverZones.push({
+      switchId: 'sw-crossover-north-1-0',
+      fromTrackId: 1,
+      toTrackId: 0,
+      startDistance: startDistNorthT1,
+      endDistance: startDistNorthT1 + curveNorth1to0.totalLength,
+      targetStartDistance: endDistNorthT0 - curveNorth1to0.totalLength,
+      targetEndDistance: endDistNorthT0,
+      path: curveNorth1to0.points,
+      totalLength: curveNorth1to0.totalLength
+    });
+
+    const startDistT0 = 2687.2;
+    const endDistT1 = 2952.5;
     const pStartT0 = this.getStaticPointAtDistance(0, startDistT0);
     const pEndT1 = this.getStaticPointAtDistance(1, endDistT1);
 
@@ -257,8 +331,8 @@ export class TrackNetwork {
       totalLength: curve0to1.totalLength
     });
 
-    const startDistT1 = 2993;
-    const endDistT0 = 3039;
+    const startDistT1 = 2775.2;
+    const endDistT0 = 2861.9;
     const pStartT1 = this.getStaticPointAtDistance(1, startDistT1);
     const pEndT0 = this.getStaticPointAtDistance(0, endDistT0);
 
@@ -358,38 +432,27 @@ export class TrackNetwork {
 
     if (!sw) return false;
 
-    const margin = 35;
-    const zones = this.crossoverZones.filter(z => z.switchId === switchId);
-
-    for (const zone of zones) {
-      if (trainTrackId === zone.fromTrackId) {
-        const trackLen = this.tracks[zone.fromTrackId].totalLength;
-        const minD = Math.min(zone.startDistance, zone.endDistance) - margin;
-        const maxD = Math.max(zone.startDistance, zone.endDistance) + margin;
-
-        if (this.isSpanOverlapping(trainTailDist, trainHeadDist, minD, maxD, trackLen)) {
-          return true;
-        }
-      }
-
-      if (trainTrackId === zone.toTrackId) {
-        const trackLen = this.tracks[zone.toTrackId].totalLength;
-        const minD = Math.min(zone.targetStartDistance, zone.targetEndDistance) - margin;
-        const maxD = Math.max(zone.targetStartDistance, zone.targetEndDistance) + margin;
-
-        if (this.isSpanOverlapping(trainTailDist, trainHeadDist, minD, maxD, trackLen)) {
-          return true;
-        }
-      }
-    }
-
     if (trainTrackId === sw.fromTrackId) {
       const trackLen = this.tracks[sw.fromTrackId].totalLength;
-      const minD = Math.min(sw.fromDistance, sw.toDistance) - margin;
-      const maxD = Math.max(sw.fromDistance, sw.toDistance) + margin;
+      const minD = sw.fromDistance - 15;
+      const maxD = sw.fromDistance + 25;
 
       if (this.isSpanOverlapping(trainTailDist, trainHeadDist, minD, maxD, trackLen)) {
         return true;
+      }
+    }
+
+    const zones = this.crossoverZones.filter(z => z.switchId === switchId);
+
+    for (const zone of zones) {
+      if (trainTrackId === zone.toTrackId) {
+        const trackLen = this.tracks[zone.toTrackId].totalLength;
+        const minD = zone.targetEndDistance - 15;
+        const maxD = zone.targetEndDistance + 15;
+
+        if (this.isSpanOverlapping(trainTailDist, trainHeadDist, minD, maxD, trackLen)) {
+          return true;
+        }
       }
     }
 
@@ -403,25 +466,16 @@ export class TrackNetwork {
     zoneEnd: number,
     trackLen: number
   ): boolean {
-    const norm = (d: number) => ((d % trackLen) + trackLen) % trackLen;
-    const s = norm(tailDist);
-    const e = norm(headDist);
-    const zs = norm(zoneStart);
-    const ze = norm(zoneEnd);
+    const trainLen = Math.abs(headDist - tailDist);
+    const zoneLen = Math.abs(zoneEnd - zoneStart);
+    const tCenter = (headDist + tailDist) / 2;
+    const zCenter = (zoneStart + zoneEnd) / 2;
 
-    if (zs <= ze) {
-      if (s <= e) {
-        return Math.max(s, zs) < Math.min(e, ze);
-      } else {
-        return s < ze || e > zs;
-      }
-    } else {
-      if (s <= e) {
-        return s < ze || e > zs;
-      } else {
-        return true;
-      }
-    }
+    let diff = Math.abs(((tCenter - zCenter) % trackLen + trackLen) % trackLen);
+
+    if (diff > trackLen / 2) diff = trackLen - diff;
+
+    return diff < (trainLen + zoneLen) / 2;
   }
 
   public getStaticPointAtDistance(trackId: number, s: number): { x: number; y: number; angle: number } {
@@ -498,6 +552,18 @@ export class TrackNetwork {
     }
 
     return this.getStaticPointAtDistance(trackId, s);
+  }
+
+  public getCurvatureAtDistance(trackId: number, s: number): number {
+    const ds = 16;
+    const pPrev = this.getPointAtDistance(trackId, s - ds);
+    const pNext = this.getPointAtDistance(trackId, s + ds);
+    let da = pNext.angle - pPrev.angle;
+
+    while (da > Math.PI) da -= 2 * Math.PI;
+    while (da < -Math.PI) da += 2 * Math.PI;
+
+    return Math.abs(da) / (2 * ds);
   }
 
   public sampleCrossoverPoint(zone: CrossoverZone, t: number): { x: number; y: number; angle: number } {
@@ -605,8 +671,8 @@ export class TrackNetwork {
     for (const sw of this.switches) {
       if (sw.path.length < 2) continue;
 
-      ctx.strokeStyle = sw.state === 'diverging' ? '#ffffff' : '#33333b';
-      ctx.lineWidth = 6;
+      ctx.strokeStyle = '#4a4a54';
+      ctx.lineWidth = 7;
 
       ctx.beginPath();
       ctx.moveTo(sw.path[0].x, sw.path[0].y);
@@ -621,12 +687,12 @@ export class TrackNetwork {
       ctx.translate(sw.worldX, sw.worldY);
 
       ctx.fillStyle = '#18181d';
-      ctx.strokeStyle = sw.state === 'diverging' ? '#008cff' : '#71717a';
+      ctx.strokeStyle = '#71717a';
       ctx.lineWidth = 1.5;
       ctx.fillRect(-9, -9, 18, 18);
       ctx.strokeRect(-9, -9, 18, 18);
 
-      ctx.strokeStyle = sw.state === 'diverging' ? '#008cff' : '#ffffff';
+      ctx.strokeStyle = '#ffffff';
       ctx.lineWidth = 1.8;
       ctx.beginPath();
 

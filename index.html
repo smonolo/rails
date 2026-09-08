@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <title>Rails</title>
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
     <link rel="stylesheet" href="/src/style.css" />
@@ -13,10 +13,10 @@
     </div>
 
     <div id="warning-banner" class="hidden">
-      <div class="warning-badge" id="warning-badge">Alert</div>
+      <div class="warning-badge" id="warning-badge">SPAD</div>
       <div class="warning-body">
         <div class="warning-title" id="warning-title">Signal passed at danger</div>
-        <div class="warning-desc" id="warning-desc">Emergency brake tripped.</div>
+        <div class="warning-desc" id="warning-desc">Emergency brake enforcement active.</div>
       </div>
       <button class="warning-btn hidden" id="warning-reset-btn">Reset</button>
     </div>
@@ -27,6 +27,7 @@
           <div class="speed-box">
             <span class="speed-num" id="hud-speed-num">0</span>
             <span class="speed-unit">km/h</span>
+            <span class="g-meter" id="hud-g-meter">0.00 G</span>
           </div>
           <div class="station-status-box" id="hud-station-info">
             <span class="status-primary">Calculating next station...</span>
@@ -71,6 +72,11 @@
           <div class="card-header">
             <span class="card-title">Train Configuration</span>
           </div>
+          <div class="type-selector-group">
+            <button class="type-btn active" id="btn-type-regional" data-type="regional">Regional</button>
+            <button class="type-btn" id="btn-type-cargo" data-type="cargo">Cargo</button>
+            <button class="type-btn" id="btn-type-highspeed" data-type="high_speed">High-Speed</button>
+          </div>
           <div class="consist-row">
             <span class="consist-label">Carriages</span>
             <div class="consist-stepper">
@@ -78,8 +84,9 @@
               <span class="consist-val" id="carr-count-val">3</span>
               <button class="consist-btn" id="btn-carr-plus" title="Add carriage">+</button>
             </div>
-            <span class="consist-weight" id="consist-weight-val">194 t</span>
+            <span class="consist-weight" id="consist-weight-val">228 t</span>
           </div>
+          <button class="invert-btn" id="btn-invert-train" title="Invert train orientation">⇄ Invert Train</button>
         </div>
 
         <div class="driver-stack">
@@ -171,7 +178,7 @@
           </div>
 
           <div class="modal-notes">
-            <p><strong>Signalling:</strong> Primary signals (<span class="key-badge">P</span>) protect occupied blocks and show Red/Green. Secondary distant signals (<span class="key-badge">S</span>) caution upcoming Primary aspects. Click any signal or junction switch on the map to command routes. Passing a Red Primary signal trips emergency brakes (SPAD).</p>
+            <p><strong>Signalling:</strong> Main signals (<span class="key-badge">Hp</span>) protect occupied blocks with Hp 0 (Stop) and Hp 1 (Clear). Distant signals (<span class="key-badge">Vr</span>) preview the upcoming Main signal (Vr 0 = Expect Stop, Vr 1 = Expect Clear). Passing an Hp 0 signal trips automatic emergency brake enforcement. Click any signal or junction switch to command routes.</p>
           </div>
         </div>
       </div>
