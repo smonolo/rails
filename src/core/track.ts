@@ -242,16 +242,16 @@ export class TrackNetwork {
 
       pts0.push({
         x,
-        y: centerY - 13.5,
+        y: centerY + 13.5,
         angle: 0,
         distance: d,
         normalX: 0,
-        normalY: -1
+        normalY: 1
       });
 
       pts1.push({
         x,
-        y: centerY + 13.5,
+        y: centerY - 13.5,
         angle: 0,
         distance: d,
         normalX: 0,

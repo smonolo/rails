@@ -22,7 +22,13 @@
     </div>
 
     <div id="warning-banner" class="hidden">
-      <div class="warning-badge" id="warning-badge">SPAD</div>
+      <div class="warning-badge" id="warning-badge">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+          <line x1="12" y1="9" x2="12" y2="13" />
+          <line x1="12" y1="17" x2="12.01" y2="17" />
+        </svg>
+      </div>
       <div class="warning-body">
         <div class="warning-title" id="warning-title">Signal passed at danger</div>
         <div class="warning-desc" id="warning-desc">Emergency brake enforcement active.</div>
@@ -133,42 +139,54 @@
           </div>
         </div>
 
-        <div class="driver-console" id="driver-console">
-          <div class="cab-telemetry">
+        <div class="hud-controls-cluster" id="driver-console">
+          <div class="hud-floating-card cab-card telemetry-card">
+            <div class="telemetry-top">
+              <span class="telemetry-label">SPEED</span>
+              <span class="telemetry-unit">KM/H</span>
+            </div>
             <div class="speed-box">
               <span class="speed-num" id="hud-speed-num">0</span>
-              <span class="speed-unit">km/h</span>
             </div>
+            <button class="btn-eb" id="btn-eb" title="Trip emergency brake (X)">EMERGENCY BRAKE</button>
           </div>
 
-          <div class="cab-controls-row">
-            <div class="reverser-group">
-              <button class="rev-btn active" id="btn-fwd">Fwd</button>
-              <button class="rev-btn" id="btn-neu">Neu</button>
-              <button class="rev-btn" id="btn-rev">Rev</button>
-            </div>
-            <button class="btn-eb" id="btn-eb" title="Trip emergency brake (X)">EB</button>
-          </div>
-
-          <div class="levers-container">
-            <div class="lever-col">
-              <span class="lever-label">Throttle</span>
-              <div class="lever-track-wrapper" id="throttle-track">
-                <div class="lever-fill throttle-fill" id="throttle-bar-fill"></div>
-                <div class="lever-handle" id="throttle-handle"></div>
+          <div class="hud-floating-card cab-card levers-card">
+            <div class="levers-row">
+              <div class="lever-col" id="reverser-col">
+                <div class="lever-header">
+                  <span class="lever-label">DIR</span>
+                </div>
+                <div class="lever-track-wrapper reverser-track-wrapper" id="reverser-track">
+                  <div class="reverser-notches">
+                    <button class="rev-notch active" id="btn-fwd" title="Forward (F)" data-pos="1">F</button>
+                    <button class="rev-notch" id="btn-neu" title="Neutral (N)" data-pos="0">N</button>
+                    <button class="rev-notch" id="btn-rev" title="Reverse (R)" data-pos="-1">R</button>
+                  </div>
+                  <div class="lever-fill reverser-fill" id="reverser-bar-fill" style="bottom: 50%; height: 50%; border-radius: 7px 7px 0 0;"></div>
+                  <div class="lever-handle reverser-handle" id="reverser-handle" style="bottom: 100%;"></div>
+                </div>
               </div>
-              <span class="lever-value" id="throttle-val">0%</span>
-              <span class="lever-key-hint">W/S</span>
-            </div>
 
-            <div class="lever-col">
-              <span class="lever-label">Brake</span>
-              <div class="lever-track-wrapper" id="brake-track">
-                <div class="lever-fill brake-fill" id="brake-bar-fill"></div>
-                <div class="lever-handle" id="brake-handle"></div>
+              <div class="lever-col">
+                <div class="lever-header">
+                  <span class="lever-label">PWR</span>
+                </div>
+                <div class="lever-track-wrapper" id="throttle-track">
+                  <div class="lever-fill throttle-fill" id="throttle-bar-fill"></div>
+                  <div class="lever-handle" id="throttle-handle"></div>
+                </div>
               </div>
-              <span class="lever-value" id="brake-val">0%</span>
-              <span class="lever-key-hint">Space</span>
+
+              <div class="lever-col">
+                <div class="lever-header">
+                  <span class="lever-label">BRK</span>
+                </div>
+                <div class="lever-track-wrapper" id="brake-track">
+                  <div class="lever-fill brake-fill" id="brake-bar-fill"></div>
+                  <div class="lever-handle" id="brake-handle"></div>
+                </div>
+              </div>
             </div>
           </div>
         </div>

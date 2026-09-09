@@ -23,10 +23,10 @@ export class HUD {
 
   private throttleFillEl!: HTMLElement;
   private throttleHandleEl!: HTMLElement;
-  private throttleValEl!: HTMLElement;
+  private throttleValEl: HTMLElement | null = null;
   private brakeFillEl!: HTMLElement;
   private brakeHandleEl!: HTMLElement;
-  private brakeValEl!: HTMLElement;
+  private brakeValEl: HTMLElement | null = null;
 
   private controlsModalEl!: HTMLElement;
 
@@ -52,8 +52,14 @@ export class HUD {
   private btnCloseWorldConfigEl!: HTMLElement;
   private btnWorldRegenerateEl!: HTMLElement;
 
+  private reverserTrackEl!: HTMLElement;
+  private reverserHandleEl!: HTMLElement;
+  private reverserValEl: HTMLElement | null = null;
+  private reverserFillEl!: HTMLElement;
+
   private draggingThrottle: boolean = false;
   private draggingBrake: boolean = false;
+  private draggingReverser: boolean = false;
 
   constructor(
     train: Train,
@@ -70,6 +76,7 @@ export class HUD {
 
     this.bindDom();
     this.setupEventListeners();
+    this.updateLeverHandles();
   }
 
   private bindDom(): void {
@@ -78,12 +85,17 @@ export class HUD {
     this.signalInfoEl = document.getElementById('hud-signal-info')!;
     this.signalDotEl = document.getElementById('hud-signal-dot')!;
 
+    this.reverserTrackEl = document.getElementById('reverser-track')!;
+    this.reverserHandleEl = document.getElementById('reverser-handle')!;
+    this.reverserValEl = document.getElementById('reverser-val');
+    this.reverserFillEl = document.getElementById('reverser-bar-fill')!;
+
     this.throttleFillEl = document.getElementById('throttle-bar-fill')!;
     this.throttleHandleEl = document.getElementById('throttle-handle')!;
-    this.throttleValEl = document.getElementById('throttle-val')!;
+    this.throttleValEl = document.getElementById('throttle-val');
     this.brakeFillEl = document.getElementById('brake-bar-fill')!;
     this.brakeHandleEl = document.getElementById('brake-handle')!;
-    this.brakeValEl = document.getElementById('brake-val')!;
+    this.brakeValEl = document.getElementById('brake-val');
     this.controlsModalEl = document.getElementById('controls-modal')!;
 
     this.warningBannerEl = document.getElementById('warning-banner')!;
@@ -228,9 +240,18 @@ export class HUD {
       this.attemptResetAlert();
     });
 
-    document.getElementById('btn-fwd')?.addEventListener('click', () => this.setReverser(1));
-    document.getElementById('btn-neu')?.addEventListener('click', () => this.setReverser(0));
-    document.getElementById('btn-rev')?.addEventListener('click', () => this.setReverser(-1));
+    document.getElementById('btn-fwd')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.setReverser(1);
+    });
+    document.getElementById('btn-neu')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.setReverser(0);
+    });
+    document.getElementById('btn-rev')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.setReverser(-1);
+    });
 
     const throttleTrack = document.getElementById('throttle-track')!;
     const brakeTrack = document.getElementById('brake-track')!;
@@ -245,6 +266,33 @@ export class HUD {
       setter(Math.round(fraction * 100) / 100);
       this.updateLeverHandles();
     };
+
+    const onReverserMove = (trackEl: HTMLElement, clientY: number) => {
+      if (this.train.isEmergencyBrakeLocked) return;
+
+      const rect = trackEl.getBoundingClientRect();
+      const clampedY = clamp(clientY, rect.top, rect.bottom);
+      const fraction = 1 - (clampedY - rect.top) / rect.height;
+
+      let targetPos: 1 | 0 | -1 = 0;
+      if (fraction >= 0.66) targetPos = 1;
+      else if (fraction <= 0.33) targetPos = -1;
+      else targetPos = 0;
+
+      this.setReverser(targetPos);
+    };
+
+    this.reverserTrackEl?.addEventListener('pointerdown', (e) => {
+      if (this.train.isEmergencyBrakeLocked) return;
+
+      this.draggingReverser = true;
+
+      try {
+        (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
+      } catch {}
+
+      onReverserMove(this.reverserTrackEl, e.clientY);
+    });
 
     throttleTrack.addEventListener('pointerdown', (e) => {
       if (this.train.isEmergencyBrakeLocked) return;
@@ -275,6 +323,8 @@ export class HUD {
         onLeverMove(throttleTrack, e.clientY, (v) => (this.train.targetThrottle = v));
       } else if (this.draggingBrake) {
         onLeverMove(brakeTrack, e.clientY, (v) => (this.train.targetBrake = v));
+      } else if (this.draggingReverser) {
+        onReverserMove(this.reverserTrackEl, e.clientY);
       }
     });
 
@@ -288,6 +338,13 @@ export class HUD {
 
       if (this.draggingBrake) {
         this.draggingBrake = false;
+        try {
+          (e.target as HTMLElement).releasePointerCapture?.(e.pointerId);
+        } catch {}
+      }
+
+      if (this.draggingReverser) {
+        this.draggingReverser = false;
         try {
           (e.target as HTMLElement).releasePointerCapture?.(e.pointerId);
         } catch {}
@@ -425,12 +482,15 @@ export class HUD {
     this.activeAlert = alert;
     this.warningBannerEl.classList.remove('hidden');
 
+    const infoIconSvg = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>';
+    const warnIconSvg = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
+
     if (alert.type === 'info') {
       this.warningBannerEl.classList.add('info-alert');
-      this.warningBadgeEl.textContent = 'Info';
+      this.warningBadgeEl.innerHTML = infoIconSvg;
     } else {
       this.warningBannerEl.classList.remove('info-alert');
-      this.warningBadgeEl.textContent = alert.type === 'danger' ? 'SPAD' : 'Warn';
+      this.warningBadgeEl.innerHTML = warnIconSvg;
     }
 
     this.warningTitleEl.textContent = alert.title;
@@ -520,21 +580,43 @@ export class HUD {
     }
 
     this.train.reverser = pos;
-    document.querySelectorAll('.rev-btn').forEach(btn => btn.classList.remove('active'));
-
-    if (pos === 1) document.getElementById('btn-fwd')?.classList.add('active');
-    else if (pos === 0) document.getElementById('btn-neu')?.classList.add('active');
-    else if (pos === -1) document.getElementById('btn-rev')?.classList.add('active');
+    this.updateLeverHandles();
   }
 
   public updateLeverHandles(): void {
     const targetThrottlePct = Math.round(this.train.targetThrottle * 100);
     this.throttleHandleEl.style.bottom = `${targetThrottlePct}%`;
-    this.throttleValEl.textContent = `${targetThrottlePct}%`;
+    if (this.throttleValEl) this.throttleValEl.textContent = `${targetThrottlePct}%`;
 
     const targetBrakePct = Math.round(this.train.targetBrake * 100);
     this.brakeHandleEl.style.bottom = `${targetBrakePct}%`;
-    this.brakeValEl.textContent = `${targetBrakePct}%`;
+    if (this.brakeValEl) this.brakeValEl.textContent = `${targetBrakePct}%`;
+
+    const rev = this.train.reverser;
+    const revBottom = rev === 1 ? '100%' : rev === -1 ? '0%' : '50%';
+    this.reverserHandleEl.style.bottom = revBottom;
+    if (this.reverserValEl) this.reverserValEl.textContent = rev === 1 ? 'FWD' : rev === -1 ? 'REV' : 'NEU';
+
+    if (this.reverserFillEl) {
+      if (rev === 1) {
+        this.reverserFillEl.style.bottom = '50%';
+        this.reverserFillEl.style.height = '50%';
+        this.reverserFillEl.style.borderRadius = '7px 7px 0 0';
+      } else if (rev === -1) {
+        this.reverserFillEl.style.bottom = '0%';
+        this.reverserFillEl.style.height = '50%';
+        this.reverserFillEl.style.borderRadius = '0 0 7px 7px';
+      } else {
+        this.reverserFillEl.style.bottom = '50%';
+        this.reverserFillEl.style.height = '0%';
+        this.reverserFillEl.style.borderRadius = '0';
+      }
+    }
+
+    document.querySelectorAll('.rev-notch').forEach(btn => btn.classList.remove('active'));
+    if (rev === 1) document.getElementById('btn-fwd')?.classList.add('active');
+    else if (rev === 0) document.getElementById('btn-neu')?.classList.add('active');
+    else if (rev === -1) document.getElementById('btn-rev')?.classList.add('active');
   }
 
   public update(stationStatus: StationStatus): void {
@@ -545,12 +627,12 @@ export class HUD {
 
     if (this.activeAlert) {
       if (this.train.isCrashed) {
+        this.warningBannerEl.classList.remove('info-alert');
+        this.warningBadgeEl.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
         if (this.train.isDerailed) {
-          this.warningBadgeEl.textContent = 'DERAILED';
           this.warningTitleEl.textContent = 'Train derailed';
           this.warningDescEl.textContent = this.train.crashReason || 'Excessive lateral speed through curve. Respawn required.';
         } else {
-          this.warningBadgeEl.textContent = 'CRASH';
           this.warningTitleEl.textContent = 'Train crashed';
           this.warningDescEl.textContent = this.train.crashReason || 'Collision with buffer stop at terminal dead track. Respawn required.';
         }
@@ -622,14 +704,14 @@ export class HUD {
 
     const targetThrottlePct = Math.round(this.train.targetThrottle * 100);
     this.throttleHandleEl.style.bottom = `${targetThrottlePct}%`;
-    this.throttleValEl.textContent = `${targetThrottlePct}%`;
+    if (this.throttleValEl) this.throttleValEl.textContent = `${targetThrottlePct}%`;
 
     const actualThrottlePct = Math.round(this.train.throttle * 100);
     this.throttleFillEl.style.height = `${actualThrottlePct}%`;
 
     const targetBrakePct = Math.round(this.train.targetBrake * 100);
     this.brakeHandleEl.style.bottom = `${targetBrakePct}%`;
-    this.brakeValEl.textContent = `${targetBrakePct}%`;
+    if (this.brakeValEl) this.brakeValEl.textContent = `${targetBrakePct}%`;
 
     const actualBrakePct = Math.round(this.train.brake * 100);
     this.brakeFillEl.style.height = `${actualBrakePct}%`;
