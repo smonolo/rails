@@ -20,11 +20,35 @@ export interface TrackData {
 
 export type WorldShape = 'I' | 'S' | 'O';
 
-export type WorldSize = 'S' | 'M' | 'L';
+export type WorldSize = 'S' | 'M' | 'L' | 'XL';
 
 export type SignalType = 'primary' | 'secondary';
 
-export type SignalAspect = 'red' | 'yellow' | 'green' | 'dark';
+export type SignalAspect = 'red' | 'yellow' | 'green' | 'dark' | 'slow';
+
+export interface SpeedZone {
+  id: string;
+  trackId: number;
+  startDistance: number;
+  endDistance: number;
+  maxSpeedKmH: number;
+}
+
+export interface SpeedSign {
+  id: string;
+  trackId: number;
+  distance: number;
+  direction: 1 | -1;
+  side: 1 | -1;
+  speedKmH: number;
+  isAdvanceWarning?: boolean;
+}
+
+export interface ActiveSpeedSign {
+  speedKmH: number;
+  isAdvanceWarning: boolean;
+  displayVal: number;
+}
 
 export interface Signal {
   id: string;

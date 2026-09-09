@@ -19,14 +19,15 @@ export class SignalManager {
     this.signals = [];
     this.blocks = [];
 
-    for (let trackId = 0; trackId < 2; trackId++) {
+    for (let trackId = 0; trackId < trackNet.tracks.length; trackId++) {
       const track = trackNet.tracks[trackId];
 
       if (!track) continue;
 
       const totalLen = track.totalLength;
       const trackNum = trackId + 1;
-      const trackSide = trackId === 1 ? -1 : 1;
+      const trackSide = trackId % 2 === 1 ? -1 : 1;
+      const blockBase = trackId * 100;
       const isClosed = track.isClosed;
 
       if (isClosed) {
@@ -82,7 +83,7 @@ export class SignalManager {
           const revSecId = `sig-d-t${trackId}-rev-b${nextIdx + 1}`;
 
           this.blocks.push({
-            id: b,
+            id: blockBase + b,
             trackId,
             direction: 1,
             startDistance: startD,
@@ -93,7 +94,7 @@ export class SignalManager {
           });
 
           this.blocks.push({
-            id: b + 50,
+            id: blockBase + b + 50,
             trackId,
             direction: -1,
             startDistance: startD,
@@ -155,7 +156,7 @@ export class SignalManager {
           const revSecId = `sig-d-t${trackId}-rev-b${b + 2}`;
 
           this.blocks.push({
-            id: b,
+            id: blockBase + b,
             trackId,
             direction: 1,
             startDistance: startD,
@@ -166,7 +167,7 @@ export class SignalManager {
           });
 
           this.blocks.push({
-            id: b + 50,
+            id: blockBase + b + 50,
             trackId,
             direction: -1,
             startDistance: startD,
@@ -256,7 +257,7 @@ export class SignalManager {
     trainHeadDist: number,
     trainTailDist: number,
     trackNet: TrackNetwork,
-    _dt: number,
+    _dt: number = 0,
     trainFacing: 1 | -1 = 1
   ): { spad: boolean; signalName?: string } {
     if (!this.hasInitialized) {
@@ -361,13 +362,37 @@ export class SignalManager {
     for (const block of this.blocks) {
       const primSig = this.signals.find(s => s.id === block.primarySignalId);
 
+      let hasDivergingSwitch = false;
+
+      for (const sw of trackNet.switches) {
+        if (sw.state === 'diverging') {
+          if (block.direction === 1 && sw.fromTrackId === block.trackId) {
+            const minB = Math.min(block.startDistance, block.endDistance) - 25;
+            const maxB = Math.max(block.startDistance, block.endDistance) + 25;
+
+            if (sw.fromDistance >= minB && sw.fromDistance <= maxB) {
+              hasDivergingSwitch = true;
+              break;
+            }
+          } else if (block.direction === -1 && sw.toTrackId === block.trackId) {
+            const minB = Math.min(block.startDistance, block.endDistance) - 25;
+            const maxB = Math.max(block.startDistance, block.endDistance) + 25;
+
+            if (sw.toDistance >= minB && sw.toDistance <= maxB) {
+              hasDivergingSwitch = true;
+              break;
+            }
+          }
+        }
+      }
+
       if (primSig) {
-        if (primSig.manualAspect !== null && primSig.manualAspect !== undefined) {
-          primSig.aspect = primSig.manualAspect;
-        } else if (block.isOccupied) {
+        if (block.isOccupied) {
+          primSig.aspect = 'red';
+        } else if (primSig.manualAspect === 'red') {
           primSig.aspect = 'red';
         } else {
-          primSig.aspect = 'green';
+          primSig.aspect = hasDivergingSwitch ? 'slow' : 'green';
         }
       }
     }
@@ -377,7 +402,13 @@ export class SignalManager {
         const linkedPrim = this.signals.find(s => s.id === secSig.linkedPrimaryId);
 
         if (linkedPrim) {
-          secSig.aspect = linkedPrim.aspect === 'red' ? 'yellow' : 'green';
+          if (linkedPrim.aspect === 'red') {
+            secSig.aspect = 'yellow';
+          } else if (linkedPrim.aspect === 'slow') {
+            secSig.aspect = 'slow';
+          } else {
+            secSig.aspect = 'green';
+          }
         }
 
         const colocatedPrim = this.signals.find(s =>
@@ -399,11 +430,71 @@ export class SignalManager {
     return { spad: spadOccurred, signalName: spadSigName };
   }
 
-  public toggleSignalAt(worldX: number, worldY: number, radius: number = 22): { signal: Signal; message: string } | null {
+  public onSwitchToggled(switchId: string, trackNet: TrackNetwork): void {
+    const sw = trackNet.switches.find(s => s.id === switchId);
+
+    if (!sw) return;
+
+    for (const block of this.blocks) {
+      let protectsSwitch = false;
+
+      if (block.direction === 1 && sw.fromTrackId === block.trackId) {
+        const minB = Math.min(block.startDistance, block.endDistance) - 25;
+        const maxB = Math.max(block.startDistance, block.endDistance) + 25;
+
+        if (sw.fromDistance >= minB && sw.fromDistance <= maxB) {
+          protectsSwitch = true;
+        }
+      } else if (block.direction === -1 && sw.toTrackId === block.trackId) {
+        const minB = Math.min(block.startDistance, block.endDistance) - 25;
+        const maxB = Math.max(block.startDistance, block.endDistance) + 25;
+
+        if (sw.toDistance >= minB && sw.toDistance <= maxB) {
+          protectsSwitch = true;
+        }
+      }
+
+      if (protectsSwitch) {
+        const primSig = this.signals.find(s => s.id === block.primarySignalId);
+
+        if (primSig) {
+          primSig.manualAspect = null;
+          primSig.manualOverride = false;
+
+          const linkedSec = this.signals.find(s => s.linkedPrimaryId === primSig.id);
+
+          if (linkedSec) {
+            linkedSec.manualAspect = null;
+            linkedSec.manualOverride = false;
+          }
+        }
+      }
+    }
+
+    this.update(this.prevTrainHeadDist, this.prevTrainTrackId, 0, trackNet);
+  }
+
+  public toggleSignalAt(
+    worldX: number,
+    worldY: number,
+    radius: number = 22,
+    activeTrackId?: number,
+    trainFacing?: 1 | -1,
+    trackNet?: TrackNetwork
+  ): { signal: Signal; message: string } | null {
     let closest: Signal | null = null;
     let minDist = radius;
 
     for (const sig of this.signals) {
+      if (activeTrackId !== undefined && trainFacing !== undefined) {
+        if (sig.trackId === activeTrackId) {
+          if (sig.direction !== trainFacing) continue;
+        } else {
+          const defaultDir: 1 | -1 = sig.trackId % 2 === 0 ? 1 : -1;
+          if (sig.direction !== defaultDir) continue;
+        }
+      }
+
       if (sig.worldX !== undefined && sig.worldY !== undefined) {
         const d = distance(sig.worldX, sig.worldY, worldX, worldY);
 
@@ -418,8 +509,48 @@ export class SignalManager {
 
     const sig = closest;
 
+    const targetPrimId = sig.type === 'primary' ? sig.id : sig.linkedPrimaryId;
+    const targetPrim = this.signals.find(s => s.id === targetPrimId);
+
+    let isDivergingRoute = false;
+
+    if (trackNet && targetPrim) {
+      const block = this.blocks.find(b => b.primarySignalId === targetPrim.id);
+
+      if (block) {
+        for (const sw of trackNet.switches) {
+          if (sw.state === 'diverging') {
+            if (block.direction === 1 && sw.fromTrackId === block.trackId) {
+              const minB = Math.min(block.startDistance, block.endDistance) - 25;
+              const maxB = Math.max(block.startDistance, block.endDistance) + 25;
+
+              if (sw.fromDistance >= minB && sw.fromDistance <= maxB) {
+                isDivergingRoute = true;
+                break;
+              }
+            } else if (block.direction === -1 && sw.toTrackId === block.trackId) {
+              const minB = Math.min(block.startDistance, block.endDistance) - 25;
+              const maxB = Math.max(block.startDistance, block.endDistance) + 25;
+
+              if (sw.toDistance >= minB && sw.toDistance <= maxB) {
+                isDivergingRoute = true;
+                break;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    const openAspect: SignalAspect = isDivergingRoute ? 'slow' : 'green';
+
     if (sig.type === 'primary') {
-      const nextAspect: SignalAspect = sig.aspect === 'red' ? 'green' : 'red';
+      let nextAspect: SignalAspect = 'red';
+
+      if (sig.aspect === 'red') {
+        nextAspect = openAspect;
+      }
+
       sig.manualAspect = nextAspect;
       sig.manualOverride = true;
       sig.aspect = nextAspect;
@@ -427,12 +558,12 @@ export class SignalManager {
       const linkedSec = this.signals.find(s => s.linkedPrimaryId === sig.id);
 
       if (linkedSec) {
-        linkedSec.aspect = nextAspect === 'red' ? 'yellow' : 'green';
+        linkedSec.aspect = nextAspect === 'red' ? 'yellow' : (nextAspect === 'slow' ? 'slow' : 'green');
         linkedSec.manualAspect = linkedSec.aspect;
         linkedSec.manualOverride = true;
       }
 
-      const aspectLabel = sig.aspect === 'red' ? 'Stop' : 'Clear';
+      const aspectLabel = sig.aspect === 'red' ? 'Stop' : (sig.aspect === 'slow' ? 'Diverging (40 km/h)' : 'Clear');
       const msg = `${sig.name} Aspect: ${aspectLabel}`;
 
       return { signal: sig, message: msg };
@@ -440,16 +571,21 @@ export class SignalManager {
       const linkedPrim = this.signals.find(s => s.id === sig.linkedPrimaryId);
 
       if (linkedPrim) {
-        const nextPrimAspect: SignalAspect = linkedPrim.aspect === 'red' ? 'green' : 'red';
+        let nextPrimAspect: SignalAspect = 'red';
+
+        if (linkedPrim.aspect === 'red') {
+          nextPrimAspect = openAspect;
+        }
+
         linkedPrim.manualAspect = nextPrimAspect;
         linkedPrim.manualOverride = true;
         linkedPrim.aspect = nextPrimAspect;
 
-        sig.aspect = nextPrimAspect === 'red' ? 'yellow' : 'green';
+        sig.aspect = nextPrimAspect === 'red' ? 'yellow' : (nextPrimAspect === 'slow' ? 'slow' : 'green');
         sig.manualAspect = sig.aspect;
         sig.manualOverride = true;
 
-        const aspectLabel = sig.aspect === 'yellow' ? 'Expect Stop' : 'Expect Clear';
+        const aspectLabel = sig.aspect === 'yellow' ? 'Expect Stop' : (sig.aspect === 'slow' ? 'Expect Diverging (40 km/h)' : 'Expect Clear');
         const msg = `${sig.name} Aspect: ${aspectLabel}`;
 
         return { signal: sig, message: msg };
@@ -485,10 +621,24 @@ export class SignalManager {
     return closest ? { signal: closest, distanceAhead: minDistance } : null;
   }
 
-  public render(ctx: CanvasRenderingContext2D, trackNet: TrackNetwork): void {
+  public render(
+    ctx: CanvasRenderingContext2D,
+    trackNet: TrackNetwork,
+    activeTrackId?: number,
+    trainFacing?: 1 | -1
+  ): void {
     ctx.save();
 
     for (const sig of this.signals) {
+      if (activeTrackId !== undefined && trainFacing !== undefined) {
+        if (sig.trackId === activeTrackId) {
+          if (sig.direction !== trainFacing) continue;
+        } else {
+          const defaultDir: 1 | -1 = sig.trackId % 2 === 0 ? 1 : -1;
+          if (sig.direction !== defaultDir) continue;
+        }
+      }
+
       const pt = trackNet.getStaticPointAtDistance(sig.trackId, sig.distance);
       const perpAngle = pt.angle + (Math.PI / 2) * sig.side;
       const offsetDist = 22;
@@ -516,10 +666,22 @@ export class SignalManager {
         ctx.fill();
         ctx.stroke();
 
-        ctx.fillStyle = sig.aspect === 'red' ? '#ef4444' : '#10b981';
-        ctx.beginPath();
-        ctx.arc(0, 0, r - 3, 0, Math.PI * 2);
-        ctx.fill();
+        if (sig.aspect === 'slow') {
+          ctx.fillStyle = '#10b981';
+          ctx.beginPath();
+          ctx.arc(0, -3.5, 3.2, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.fillStyle = '#f59e0b';
+          ctx.beginPath();
+          ctx.arc(0, 3.5, 3.2, 0, Math.PI * 2);
+          ctx.fill();
+        } else {
+          ctx.fillStyle = sig.aspect === 'red' ? '#ef4444' : '#10b981';
+          ctx.beginPath();
+          ctx.arc(0, 0, r - 3, 0, Math.PI * 2);
+          ctx.fill();
+        }
 
         ctx.font = '700 7px "Geist Mono", monospace';
         ctx.fillStyle = '#ffffff';
@@ -545,16 +707,33 @@ export class SignalManager {
 
         if (sig.aspect === 'dark') {
           ctx.fillStyle = '#27272a';
+          ctx.beginPath();
+          ctx.moveTo(0, -size + 3);
+          ctx.lineTo(size - 3, 0);
+          ctx.lineTo(0, size - 3);
+          ctx.lineTo(-size + 3, 0);
+          ctx.closePath();
+          ctx.fill();
+        } else if (sig.aspect === 'slow') {
+          ctx.fillStyle = '#10b981';
+          ctx.beginPath();
+          ctx.arc(0, -2.8, 2.6, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.fillStyle = '#f59e0b';
+          ctx.beginPath();
+          ctx.arc(0, 2.8, 2.6, 0, Math.PI * 2);
+          ctx.fill();
         } else {
           ctx.fillStyle = sig.aspect === 'yellow' ? '#f59e0b' : '#10b981';
+          ctx.beginPath();
+          ctx.moveTo(0, -size + 3);
+          ctx.lineTo(size - 3, 0);
+          ctx.lineTo(0, size - 3);
+          ctx.lineTo(-size + 3, 0);
+          ctx.closePath();
+          ctx.fill();
         }
-        ctx.beginPath();
-        ctx.moveTo(0, -size + 3);
-        ctx.lineTo(size - 3, 0);
-        ctx.lineTo(0, size - 3);
-        ctx.lineTo(-size + 3, 0);
-        ctx.closePath();
-        ctx.fill();
 
         ctx.font = '700 7px "Geist Mono", monospace';
         ctx.fillStyle = '#ffffff';

@@ -47,6 +47,11 @@
           <div class="track-status-item station-status-box" id="hud-station-info">
             <span class="status-primary">Calculating next station...</span>
           </div>
+          <div class="track-status-sep"></div>
+          <div class="track-status-item speed-status-box" id="hud-speed-info">
+            <div class="speed-sign-mini" id="hud-speed-mini-sign"></div>
+            <span id="hud-speed-info-text">Limit: 140 km/h</span>
+          </div>
         </div>
 
         <div class="top-actions-group">
@@ -113,6 +118,7 @@
               <button class="size-btn" id="btn-size-s" data-size="S">S</button>
               <button class="size-btn active" id="btn-size-m" data-size="M">M</button>
               <button class="size-btn" id="btn-size-l" data-size="L">L</button>
+              <button class="size-btn" id="btn-size-xl" data-size="XL">XL</button>
             </div>
             <button class="world-regen-btn" id="btn-world-regenerate" title="Regenerate world">Regenerate world</button>
           </div>
@@ -178,6 +184,12 @@
             </div>
             <div class="speed-box">
               <span class="speed-num" id="hud-speed-num">0</span>
+              <div class="hud-active-sign" id="hud-active-sign" title="Active speed limit sign">
+                <svg class="hud-sign-svg" width="38" height="34" viewBox="0 0 38 34">
+                  <rect x="2" y="2" width="34" height="30" rx="4" fill="#ffffff" stroke="#18181b" stroke-width="2.5" />
+                  <text x="19" y="23" font-family="'Geist Mono', monospace" font-size="18" font-weight="900" fill="#18181b" text-anchor="middle">12</text>
+                </svg>
+              </div>
             </div>
             <div class="telemetry-actions">
               <button class="btn-deadman hidden" id="btn-deadman" title="Deadman vigilance pedal (Q) - click or press Q to acknowledge">

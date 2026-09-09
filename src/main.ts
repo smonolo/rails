@@ -63,9 +63,14 @@ class Game {
     this.hud = new HUD(this.train, this.stationMgr, this.signalMgr, this.trackNet, this.camera, this.advancedSystemsMgr);
     this.hud.selectedShape = this.currentShape;
     this.hud.selectedSize = this.currentSize;
+    this.hud.syncWorldConfigUI();
     this.hud.onRegenerateShape = (shape, size) => {
       this.regenerateWorld(undefined, shape, size);
     };
+
+    if (!this.advancedSystemsMgr.config.advancedControls) {
+      localStorage.removeItem('rails_advanced_controls');
+    }
 
     this.setupResize();
     this.setupInput();
@@ -264,6 +269,7 @@ class Game {
         setTimeout(() => this.hud.clearAlert(), 3500);
       } else {
         const newState = this.trackNet.toggleSwitch(clickedSwitch.id);
+        this.signalMgr.onSwitchToggled(clickedSwitch.id, this.trackNet);
         const stateStr = newState === 'diverging' ? 'diverging route' : 'straight route';
 
         this.hud.triggerAlert({
@@ -276,7 +282,7 @@ class Game {
         setTimeout(() => this.hud.clearAlert(), 3500);
       }
     } else {
-      const result = this.signalMgr.toggleSignalAt(worldX, worldY, radius);
+      const result = this.signalMgr.toggleSignalAt(worldX, worldY, radius, this.train.trackId, this.train.facing, this.trackNet);
 
       if (result) {
         this.hud.triggerAlert({
@@ -442,10 +448,10 @@ class Game {
     this.renderMapCartouche(this.ctx, bounds);
 
     this.sceneryMgr.renderGround(this.ctx);
-    this.trackNet.render(this.ctx);
+    this.trackNet.render(this.ctx, this.train.trackId, this.train.facing);
     this.sceneryMgr.renderCatenary(this.ctx);
     this.stationMgr.render(this.ctx, this.trackNet);
-    this.signalMgr.render(this.ctx, this.trackNet);
+    this.signalMgr.render(this.ctx, this.trackNet, this.train.trackId, this.train.facing);
     this.train.render(this.ctx, this.trackNet);
 
     this.ctx.restore();

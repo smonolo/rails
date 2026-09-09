@@ -167,6 +167,38 @@ html, body {
   margin-left: 2px;
 }
 
+.speed-status-box {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-sm-white);
+  white-space: nowrap;
+}
+
+.speed-status-box .sub {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--color-neutral-400);
+  margin-left: 2px;
+}
+
+.speed-sign-mini {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.speed-sign-mini svg {
+  display: block;
+  width: 20px;
+  height: 17px;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.35));
+}
+
 .badge-active {
   color: var(--color-sm-white);
   font-weight: 600;
@@ -796,21 +828,63 @@ html, body {
 
 .telemetry-card .speed-box {
   display: flex;
-  align-items: baseline;
-  justify-content: center;
+  align-items: center;
+  justify-content: space-between;
   width: 100%;
   margin: auto 0;
+  padding: 0 4px;
+  box-sizing: border-box;
 }
 
 .speed-num {
   font-family: var(--font-mono);
-  font-size: 40px;
+  font-size: 38px;
   font-weight: 700;
   line-height: 1;
   font-variant-numeric: tabular-nums;
   color: var(--color-sm-white);
-  text-align: center;
-  width: 100%;
+  text-align: left;
+  letter-spacing: -1px;
+  transition: color 0.15s ease;
+  user-select: none;
+}
+
+.speed-num.overspeed {
+  color: #ef4444;
+  text-shadow: 0 0 12px rgba(239, 68, 68, 0.4);
+}
+
+.hud-active-sign {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: default;
+  transition: transform 0.15s ease;
+  flex-shrink: 0;
+}
+
+.hud-active-sign .hud-sign-svg {
+  display: block;
+  width: 38px;
+  height: 34px;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.45));
+}
+
+.hud-active-sign.overspeed {
+  animation: hud-sign-overspeed 0.6s ease-in-out infinite alternate;
+}
+
+.hud-active-sign.overspeed .hud-sign-svg {
+  filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.9));
+}
+
+@keyframes hud-sign-overspeed {
+  0% {
+    transform: scale(1);
+  }
+  100% {
+    transform: scale(1.12);
+  }
 }
 
 .telemetry-actions {

@@ -229,7 +229,7 @@ export class Train {
     this.facing = 1;
 
     this.trackId = Math.random() < 0.5 ? 0 : 1;
-    this.facing = this.trackId === 0 ? 1 : -1;
+    this.facing = this.trackId % 2 === 0 ? 1 : -1;
     const currentTrack = trackNet.tracks[this.trackId];
 
     if (currentTrack) {
@@ -378,14 +378,15 @@ export class Train {
 
         if (!sw || sw.state !== 'diverging') continue;
 
-        const isStandardFwd = zone.endDistance >= zone.startDistance;
+        const fromDir = zone.fromDirection ?? (zone.endDistance >= zone.startDistance ? 1 : -1);
+        const toDir = zone.toDirection ?? fromDir;
         const entries = [
           {
             trackId: zone.fromTrackId,
             entryDist: zone.startDistance,
             exitDist: zone.targetEndDistance,
             toTrackId: zone.toTrackId,
-            direction: (isStandardFwd ? 1 : -1) as 1 | -1,
+            direction: fromDir,
             reverseCurve: false
           },
           {
@@ -393,7 +394,7 @@ export class Train {
             entryDist: zone.targetEndDistance,
             exitDist: zone.startDistance,
             toTrackId: zone.fromTrackId,
-            direction: (isStandardFwd ? -1 : 1) as 1 | -1,
+            direction: (-toDir) as 1 | -1,
             reverseCurve: true
           }
         ];
@@ -527,7 +528,7 @@ export class Train {
         }
 
         const pt = trackNet.getStaticPointAtDistance(cross.toTrackId, dist);
-        const baseAngle = cross.direction === 1 ? pt.angle : pt.angle + Math.PI;
+        const baseAngle = pt.angle;
 
         return {
           x: pt.x,
@@ -539,11 +540,7 @@ export class Train {
       if (d >= 0) {
         const curveDist = cross.reverseCurve ? cross.zone.totalLength - d : d;
         const pt = trackNet.getCrossoverPointAtDistance(cross.zone, curveDist);
-        let baseAngle = pt.angle;
-
-        if (cross.reverseCurve) {
-          baseAngle += Math.PI;
-        }
+        const baseAngle = cross.reverseCurve ? pt.angle + Math.PI : pt.angle;
 
         return {
           x: pt.x,
@@ -561,7 +558,7 @@ export class Train {
         }
 
         const pt = trackNet.getStaticPointAtDistance(cross.fromTrackId, dist);
-        const baseAngle = cross.direction === 1 ? pt.angle : pt.angle + Math.PI;
+        const baseAngle = pt.angle;
 
         return {
           x: pt.x,

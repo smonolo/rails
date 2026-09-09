@@ -1,6 +1,6 @@
-import type { Point2D, TrackPoint, JunctionSwitch, SwitchState, TrackData, WorldShape, WorldSize, WorldBounds } from '../types.ts';
+import type { Point2D, TrackPoint, JunctionSwitch, SwitchState, TrackData, WorldShape, WorldSize, WorldBounds, SpeedZone, SpeedSign, ActiveSpeedSign } from '../types.ts';
 import { PRNG } from '../utils/prng.ts';
-import { catmullRom2D, binarySearchByDistance, lerp, lerpAngle, clamp, wrap, distance } from '../utils/math.ts';
+import { catmullRom2D, binarySearchByDistance, lerp, lerpAngle, clamp, wrap, distance, angleDiff } from '../utils/math.ts';
 
 export interface CrossoverZone {
   switchId: string;
@@ -12,12 +12,16 @@ export interface CrossoverZone {
   targetEndDistance: number;
   path: TrackPoint[];
   totalLength: number;
+  fromDirection?: 1 | -1;
+  toDirection?: 1 | -1;
 }
 
 export class TrackNetwork {
   public tracks: TrackData[] = [];
   public switches: JunctionSwitch[] = [];
   public crossoverZones: CrossoverZone[] = [];
+  public speedZones: SpeedZone[] = [];
+  public speedSigns: SpeedSign[] = [];
   public worldBounds: WorldBounds = { minX: 100, maxX: 2500, minY: 150, maxY: 1800 };
   public seed: number | string = 12345;
   public shape: WorldShape = 'O';
@@ -34,6 +38,8 @@ export class TrackNetwork {
     this.tracks = [];
     this.switches = [];
     this.crossoverZones = [];
+    this.speedZones = [];
+    this.speedSigns = [];
 
     const prng = new PRNG(seed);
 
@@ -53,6 +59,7 @@ export class TrackNetwork {
     }
 
     this.computeWorldBounds();
+    this.generateSpeedZonesAndSigns();
   }
 
   private computeWorldBounds(): void {
@@ -227,6 +234,12 @@ export class TrackNetwork {
       crossEast = 4300;
       crossLen = 240;
       crossGap = 80;
+    } else if (size === 'XL') {
+      totalLen = 10500;
+      crossWest = 2600;
+      crossEast = 7200;
+      crossLen = 260;
+      crossGap = 90;
     }
 
     const startX = 400;
@@ -308,6 +321,21 @@ export class TrackNetwork {
       crossEast = 4700;
       crossLen = 240;
       crossGap = 80;
+    } else if (size === 'XL') {
+      deltaY = prng.range(500, 600);
+      waypoints = [
+        { x: startX, y: centerY },
+        { x: startX + 2100, y: centerY },
+        { x: startX + 3700, y: centerY - deltaY },
+        { x: startX + 5400, y: centerY },
+        { x: startX + 7100, y: centerY + deltaY },
+        { x: startX + 8700, y: centerY },
+        { x: startX + 10800, y: centerY }
+      ];
+      crossWest = 2700;
+      crossEast = 7500;
+      crossLen = 260;
+      crossGap = 90;
     } else {
       waypoints = [
         { x: startX, y: centerY },
@@ -346,6 +374,12 @@ export class TrackNetwork {
       centerY = 1900 + prng.range(-60, 60);
       crossLen = 240;
       crossGap = 80;
+    } else if (size === 'XL') {
+      baseR = prng.range(1600, 1900);
+      centerX = 4600 + prng.range(-100, 100);
+      centerY = 2600 + prng.range(-80, 80);
+      crossLen = 260;
+      crossGap = 90;
     }
 
     const aspectRatio = prng.range(1.35, 1.65);
@@ -398,7 +432,9 @@ export class TrackNetwork {
     namePrefix: string,
     startDist: number,
     length: number = 240,
-    gap: number = 80
+    gap: number = 80,
+    trackA: number = 0,
+    trackB: number = 1
   ): void {
     const cross1Start = startDist;
     const cross1End = cross1Start + length;
@@ -407,21 +443,25 @@ export class TrackNetwork {
     const cross2End = cross2Start + length;
 
     this.addCrossover(
-      `${idPrefix}-0-1`,
-      `${namePrefix} (Track 1 → 2)`,
-      0,
-      1,
+      `${idPrefix}-${trackA}-${trackB}`,
+      `${namePrefix} (Track ${trackA + 1} → ${trackB + 1})`,
+      trackA,
+      trackB,
       cross1Start,
-      cross1End
+      cross1End,
+      1,
+      1
     );
 
     this.addCrossover(
-      `${idPrefix}-1-0`,
-      `${namePrefix} (Track 2 → 1)`,
-      1,
-      0,
+      `${idPrefix}-${trackB}-${trackA}`,
+      `${namePrefix} (Track ${trackB + 1} → ${trackA + 1})`,
+      trackB,
+      trackA,
       cross2Start,
-      cross2End
+      cross2End,
+      1,
+      1
     );
   }
 
@@ -431,14 +471,19 @@ export class TrackNetwork {
     fromTrackId: number,
     toTrackId: number,
     startDist: number,
-    endDist: number
+    endDist: number,
+    fromDirection: 1 | -1 = 1,
+    toDirection: 1 | -1 = 1
   ): void {
     const pStart = this.getStaticPointAtDistance(fromTrackId, startDist);
     const pEnd = this.getStaticPointAtDistance(toTrackId, endDist);
 
+    const startAngle = fromDirection === 1 ? pStart.angle : pStart.angle + Math.PI;
+    const endAngle = toDirection === 1 ? pEnd.angle : pEnd.angle + Math.PI;
+
     const curve = this.sampleBézierCurve(
-      { x: pStart.x, y: pStart.y, angle: pStart.angle },
-      { x: pEnd.x, y: pEnd.y, angle: pEnd.angle },
+      { x: pStart.x, y: pStart.y, angle: startAngle },
+      { x: pEnd.x, y: pEnd.y, angle: endAngle },
       60
     );
 
@@ -465,7 +510,9 @@ export class TrackNetwork {
       targetStartDistance: startDist,
       targetEndDistance: endDist,
       path: curve.points,
-      totalLength: curve.totalLength
+      totalLength: curve.totalLength,
+      fromDirection,
+      toDirection
     });
   }
 
@@ -655,7 +702,388 @@ export class TrackNetwork {
     return sw.state;
   }
 
-  public render(ctx: CanvasRenderingContext2D): void {
+  public getSpeedLimitAt(
+    trackId: number,
+    dist: number,
+    isInCrossover: boolean = false
+  ): number {
+    if (isInCrossover) {
+      return 40;
+    }
+
+    for (const sw of this.switches) {
+      if (sw.state === 'diverging') {
+        if (sw.fromTrackId === trackId && Math.abs(dist - sw.fromDistance) <= 80) {
+          return 40;
+        }
+
+        if (sw.toTrackId === trackId && Math.abs(dist - sw.toDistance) <= 80) {
+          return 40;
+        }
+      }
+    }
+
+    const zones = this.speedZones.filter(z => z.trackId === trackId);
+
+    for (const zone of zones) {
+      if (dist >= zone.startDistance && dist <= zone.endDistance) {
+        return zone.maxSpeedKmH;
+      }
+    }
+
+    return 120;
+  }
+
+  public getActiveSpeedSign(
+    trackId: number,
+    dist: number,
+    direction: 1 | -1,
+    isInCrossover: boolean = false
+  ): ActiveSpeedSign {
+    if (isInCrossover) {
+      return { speedKmH: 40, isAdvanceWarning: false, displayVal: 4 };
+    }
+
+    for (const sw of this.switches) {
+      if (sw.state === 'diverging') {
+        if (sw.fromTrackId === trackId && Math.abs(dist - sw.fromDistance) <= 80) {
+          return { speedKmH: 40, isAdvanceWarning: false, displayVal: 4 };
+        }
+
+        if (sw.toTrackId === trackId && Math.abs(dist - sw.toDistance) <= 80) {
+          return { speedKmH: 40, isAdvanceWarning: false, displayVal: 4 };
+        }
+      }
+    }
+
+    const track = this.tracks[trackId];
+
+    if (!track || track.points.length < 2) {
+      return { speedKmH: 120, isAdvanceWarning: false, displayVal: 12 };
+    }
+
+    const totalLen = track.totalLength;
+    const matching = this.speedSigns.filter(s => s.trackId === trackId && s.direction === direction);
+    let bestSign: SpeedSign | null = null;
+    let minD = Infinity;
+
+    for (const s of matching) {
+      let d: number;
+
+      if (track.isClosed) {
+        d = direction === 1 ? wrap(dist - s.distance, totalLen) : wrap(s.distance - dist, totalLen);
+      } else {
+        d = direction === 1 ? dist - s.distance : s.distance - dist;
+      }
+
+      if (d >= 0 && d < minD) {
+        minD = d;
+        bestSign = s;
+      }
+    }
+
+    if (bestSign) {
+      return {
+        speedKmH: bestSign.speedKmH,
+        isAdvanceWarning: !!bestSign.isAdvanceWarning,
+        displayVal: Math.round(bestSign.speedKmH / 10)
+      };
+    }
+
+    const lim = this.getSpeedLimitAt(trackId, dist, isInCrossover);
+
+    return {
+      speedKmH: lim,
+      isAdvanceWarning: false,
+      displayVal: Math.round(lim / 10)
+    };
+  }
+
+  public getNextSpeedSignAhead(
+    trackId: number,
+    trainDist: number,
+    direction: 1 | -1 = 1
+  ): { sign: SpeedSign; distanceAhead: number } | null {
+    const track = this.tracks[trackId];
+
+    if (!track || track.points.length < 2) return null;
+
+    const totalLen = track.totalLength;
+    const matching = this.speedSigns.filter(s => s.trackId === trackId && s.direction === direction);
+    let closest: SpeedSign | null = null;
+    let minDistance = Infinity;
+
+    for (const sig of matching) {
+      let delta: number;
+
+      if (track.isClosed) {
+        delta = direction === 1
+          ? wrap(sig.distance - trainDist, totalLen)
+          : wrap(trainDist - sig.distance, totalLen);
+      } else {
+        delta = direction === 1
+          ? sig.distance - trainDist
+          : trainDist - sig.distance;
+      }
+
+      if (delta > 1 && delta < minDistance) {
+        minDistance = delta;
+        closest = sig;
+      }
+    }
+
+    return closest ? { sign: closest, distanceAhead: minDistance } : null;
+  }
+
+  private generateSpeedZonesAndSigns(): void {
+    this.speedZones = [];
+    this.speedSigns = [];
+
+    for (let trackId = 0; trackId < this.tracks.length; trackId++) {
+      const track = this.tracks[trackId];
+
+      if (!track || track.points.length < 2) continue;
+
+      const trackLen = track.totalLength;
+      const trackSide = trackId % 2 === 1 ? -1 : 1;
+      const sampleStep = 80;
+      const numSamples = Math.max(12, Math.floor(trackLen / sampleStep));
+      const sampleDist = trackLen / numSamples;
+      const rawCurvatures: number[] = [];
+
+      for (let i = 0; i < numSamples; i++) {
+        const d = i * sampleDist;
+        const halfSpan = 140;
+        const dA = track.isClosed ? wrap(d - halfSpan, trackLen) : Math.max(0, d - halfSpan);
+        const dB = track.isClosed ? wrap(d + halfSpan, trackLen) : Math.min(trackLen, d + halfSpan);
+        const pA = this.getStaticPointAtDistance(trackId, dA);
+        const pB = this.getStaticPointAtDistance(trackId, dB);
+        const da = Math.abs(angleDiff(pA.angle, pB.angle));
+        const curvature = da / (halfSpan * 2);
+        rawCurvatures.push(curvature);
+      }
+
+      const smoothedCurvatures: number[] = [];
+      const filterRadius = 4;
+
+      for (let i = 0; i < numSamples; i++) {
+        let sum = 0;
+        let count = 0;
+
+        for (let r = -filterRadius; r <= filterRadius; r++) {
+          const idx = track.isClosed ? (i + r + numSamples) % numSamples : clamp(i + r, 0, numSamples - 1);
+          sum += rawCurvatures[idx];
+          count++;
+        }
+
+        smoothedCurvatures.push(sum / count);
+      }
+
+      const rawLimits: { distance: number; speed: number }[] = [];
+
+      for (let i = 0; i < numSamples; i++) {
+        const d = i * sampleDist;
+        const curv = smoothedCurvatures[i];
+        let speed = 140;
+
+        if (!track.isClosed && (d < 650 || d > trackLen - 650)) {
+          speed = 80;
+        } else if (curv > 0.0022) {
+          speed = 80;
+        } else if (curv > 0.0011) {
+          speed = 100;
+        } else if (curv > 0.0005) {
+          speed = 120;
+        } else {
+          speed = 140;
+        }
+
+        rawLimits.push({ distance: d, speed });
+      }
+
+      let mergedZones: { start: number; end: number; speed: number }[] = [];
+      let currentStart = 0;
+      let currentSpeed = rawLimits[0].speed;
+
+      for (let i = 1; i < rawLimits.length; i++) {
+        if (rawLimits[i].speed !== currentSpeed) {
+          mergedZones.push({
+            start: Math.round(currentStart),
+            end: Math.round(rawLimits[i].distance),
+            speed: currentSpeed
+          });
+          currentStart = rawLimits[i].distance;
+          currentSpeed = rawLimits[i].speed;
+        }
+      }
+
+      mergedZones.push({
+        start: Math.round(currentStart),
+        end: Math.round(trackLen),
+        speed: currentSpeed
+      });
+
+      const minZoneLen = 350;
+      let consolidated = [...mergedZones];
+      let changed = true;
+      let passes = 0;
+
+      while (changed && passes < 8) {
+        changed = false;
+        passes++;
+
+        if (consolidated.length <= 1) break;
+
+        const nextList: { start: number; end: number; speed: number }[] = [];
+
+        for (let j = 0; j < consolidated.length; j++) {
+          const z = consolidated[j];
+          const len = z.end - z.start;
+
+          if (len < minZoneLen) {
+            changed = true;
+
+            if (nextList.length > 0) {
+              const prev = nextList[nextList.length - 1];
+              prev.end = z.end;
+            } else if (j + 1 < consolidated.length) {
+              const nextZ = consolidated[j + 1];
+              nextZ.start = z.start;
+            } else {
+              nextList.push(z);
+            }
+          } else {
+            nextList.push({ ...z });
+          }
+        }
+
+        const mergedAgain: { start: number; end: number; speed: number }[] = [];
+
+        for (const z of nextList) {
+          if (mergedAgain.length > 0 && mergedAgain[mergedAgain.length - 1].speed === z.speed) {
+            mergedAgain[mergedAgain.length - 1].end = z.end;
+          } else {
+            mergedAgain.push({ ...z });
+          }
+        }
+
+        consolidated = mergedAgain;
+      }
+
+      mergedZones = consolidated;
+
+      if (track.isClosed && mergedZones.length > 1) {
+        const first = mergedZones[0];
+        const last = mergedZones[mergedZones.length - 1];
+
+        if (first.speed === last.speed) {
+          last.end = trackLen;
+          first.start = 0;
+        }
+      }
+
+      for (let z = 0; z < mergedZones.length; z++) {
+        const mz = mergedZones[z];
+        this.speedZones.push({
+          id: `zone-t${trackId}-${z}`,
+          trackId,
+          startDistance: mz.start,
+          endDistance: mz.end,
+          maxSpeedKmH: mz.speed
+        });
+      }
+
+      const firstSpeed = mergedZones[0].speed;
+      const initDistFwd = track.isClosed ? 60 : 80;
+
+      this.speedSigns.push({
+        id: `sign-init-fwd-t${trackId}`,
+        trackId,
+        distance: initDistFwd,
+        direction: 1,
+        side: trackSide,
+        speedKmH: firstSpeed,
+        isAdvanceWarning: false
+      });
+
+      const lastSpeed = mergedZones[mergedZones.length - 1].speed;
+      const initDistRev = track.isClosed ? Math.round(trackLen - 60) : Math.round(trackLen - 80);
+
+      this.speedSigns.push({
+        id: `sign-init-rev-t${trackId}`,
+        trackId,
+        distance: initDistRev,
+        direction: -1,
+        side: trackSide,
+        speedKmH: lastSpeed,
+        isAdvanceWarning: false
+      });
+
+      if (mergedZones.length > 1) {
+        for (let z = 1; z < mergedZones.length; z++) {
+          const zone = mergedZones[z];
+          const prevZone = mergedZones[z - 1];
+          const boundaryDist = zone.start;
+
+          if (zone.speed !== prevZone.speed) {
+            this.speedSigns.push({
+              id: `sign-fwd-t${trackId}-${z}`,
+              trackId,
+              distance: boundaryDist,
+              direction: 1,
+              side: trackSide,
+              speedKmH: zone.speed,
+              isAdvanceWarning: false
+            });
+
+            if (zone.speed < prevZone.speed) {
+              const advDist = track.isClosed
+                ? wrap(boundaryDist - 450, trackLen)
+                : Math.max(80, boundaryDist - 450);
+
+              this.speedSigns.push({
+                id: `sign-adv-fwd-t${trackId}-${z}`,
+                trackId,
+                distance: Math.round(advDist),
+                direction: 1,
+                side: trackSide,
+                speedKmH: zone.speed,
+                isAdvanceWarning: true
+              });
+            }
+
+            this.speedSigns.push({
+              id: `sign-rev-t${trackId}-${z}`,
+              trackId,
+              distance: boundaryDist,
+              direction: -1,
+              side: trackSide,
+              speedKmH: prevZone.speed,
+              isAdvanceWarning: false
+            });
+
+            if (prevZone.speed < zone.speed) {
+              const advDist = track.isClosed
+                ? wrap(boundaryDist + 450, trackLen)
+                : Math.min(trackLen - 80, boundaryDist + 450);
+
+              this.speedSigns.push({
+                id: `sign-adv-rev-t${trackId}-${z}`,
+                trackId,
+                distance: Math.round(advDist),
+                direction: -1,
+                side: trackSide,
+                speedKmH: prevZone.speed,
+                isAdvanceWarning: true
+              });
+            }
+          }
+        }
+      }
+    }
+  }
+
+  public render(ctx: CanvasRenderingContext2D, activeTrackId?: number, trainFacing?: 1 | -1): void {
     ctx.save();
 
     for (let trackId = 0; trackId < this.tracks.length; trackId++) {
@@ -790,6 +1218,83 @@ export class TrackNetwork {
         ctx.stroke();
         ctx.restore();
       }
+    }
+
+    for (const sign of this.speedSigns) {
+      if (activeTrackId !== undefined && trainFacing !== undefined) {
+        if (sign.trackId === activeTrackId) {
+          if (sign.direction !== trainFacing) continue;
+        } else {
+          const defaultDir: 1 | -1 = sign.trackId % 2 === 0 ? 1 : -1;
+          if (sign.direction !== defaultDir) continue;
+        }
+      }
+
+      const pt = this.getStaticPointAtDistance(sign.trackId, sign.distance);
+      const perpAngle = pt.angle + (Math.PI / 2) * sign.side;
+      const offsetDist = 26;
+      const sx = pt.x + Math.cos(perpAngle) * offsetDist;
+      const sy = pt.y + Math.sin(perpAngle) * offsetDist;
+      const displayVal = Math.round(sign.speedKmH / 10);
+
+      ctx.strokeStyle = '#3f3f46';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(pt.x, pt.y);
+      ctx.lineTo(sx, sy);
+      ctx.stroke();
+
+      ctx.save();
+      ctx.translate(sx, sy);
+
+      if (sign.isAdvanceWarning) {
+        ctx.beginPath();
+        ctx.moveTo(-14.5, -13.5);
+        ctx.lineTo(14.5, -13.5);
+        ctx.lineTo(0, 14.5);
+        ctx.closePath();
+        ctx.fillStyle = '#18181b';
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.moveTo(-13, -12);
+        ctx.lineTo(13, -12);
+        ctx.lineTo(0, 13);
+        ctx.closePath();
+        ctx.fillStyle = '#ffffff';
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.moveTo(-10.5, -10);
+        ctx.lineTo(10.5, -10);
+        ctx.lineTo(0, 10.5);
+        ctx.closePath();
+        ctx.fillStyle = '#f59e0b';
+        ctx.fill();
+
+        ctx.font = '900 10.5px "Geist Mono", monospace';
+        ctx.fillStyle = '#18181b';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(`${displayVal}`, 0, -2.5);
+      } else {
+        ctx.fillStyle = '#ffffff';
+        ctx.strokeStyle = '#18181b';
+        ctx.lineWidth = 1.8;
+
+        ctx.beginPath();
+        ctx.roundRect(-14, -11, 28, 22, 2.5);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.font = '900 13px "Geist Mono", monospace';
+        ctx.fillStyle = '#18181b';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(`${displayVal}`, 0, 1);
+      }
+
+      ctx.restore();
     }
 
     ctx.restore();

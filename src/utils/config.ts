@@ -35,9 +35,9 @@ export function loadWorldConfig(): WorldConfig {
 
   let size: WorldSize = 'M';
 
-  if (urlSize && ['S', 'M', 'L'].includes(urlSize)) {
+  if (urlSize && ['S', 'M', 'L', 'XL'].includes(urlSize)) {
     size = urlSize;
-  } else if (storedSize && ['S', 'M', 'L'].includes(storedSize)) {
+  } else if (storedSize && ['S', 'M', 'L', 'XL'].includes(storedSize)) {
     size = storedSize;
   }
 
@@ -60,23 +60,17 @@ export function loadAdvancedConfig(): AdvancedSystemsConfig {
   const urlParams = new URLSearchParams(window.location.search);
   const urlAdv = urlParams.get('advanced');
   const urlDeadman = urlParams.get('deadman');
-  const storedAdv = localStorage.getItem('rails_advanced_controls');
-  const storedDeadman = localStorage.getItem('rails_deadman');
 
   let advancedControls = false;
 
   if (urlAdv !== null) {
     advancedControls = urlAdv === '1' || urlAdv.toLowerCase() === 'true';
-  } else if (storedAdv !== null) {
-    advancedControls = storedAdv === 'true';
   }
 
   let deadman = true;
 
   if (urlDeadman !== null) {
     deadman = urlDeadman === '1' || urlDeadman.toLowerCase() === 'true';
-  } else if (storedDeadman !== null) {
-    deadman = storedDeadman === 'true';
   }
 
   return { advancedControls, deadman };

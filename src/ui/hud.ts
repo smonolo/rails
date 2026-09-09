@@ -5,7 +5,7 @@ import { TrackNetwork } from '../core/track.ts';
 import { Camera } from './camera.ts';
 import { clamp } from '../utils/math.ts';
 import { AdvancedSystemsManager } from '../core/advanced.ts';
-import type { WarningAlert, TrainType, WorldShape, WorldSize } from '../types.ts';
+import type { WarningAlert, TrainType, WorldShape, WorldSize, ActiveSpeedSign, SpeedSign } from '../types.ts';
 
 export class HUD {
   private train: Train;
@@ -19,6 +19,11 @@ export class HUD {
   public onRegenerateShape?: (shape: WorldShape, size: WorldSize) => void;
 
   private speedEl!: HTMLElement;
+  private activeSignEl!: HTMLElement;
+  private lastActiveSignKey: string = '';
+  private speedMiniSignEl!: HTMLElement;
+  private speedInfoTextEl!: HTMLElement;
+  private lastUpcomingSignKey: string = '';
   private stationInfoEl!: HTMLElement;
   private signalInfoEl!: HTMLElement;
   private signalDotEl!: HTMLElement;
@@ -86,14 +91,20 @@ export class HUD {
     this.trackNet = trackNet;
     this.camera = camera;
     this.advancedSystemsMgr = advancedSystemsMgr;
+    this.selectedShape = trackNet.shape;
+    this.selectedSize = trackNet.size;
 
     this.bindDom();
     this.setupEventListeners();
     this.updateLeverHandles();
+    this.syncWorldConfigUI();
   }
 
   private bindDom(): void {
     this.speedEl = document.getElementById('hud-speed-num')!;
+    this.activeSignEl = document.getElementById('hud-active-sign')!;
+    this.speedMiniSignEl = document.getElementById('hud-speed-mini-sign')!;
+    this.speedInfoTextEl = document.getElementById('hud-speed-info-text')!;
     this.stationInfoEl = document.getElementById('hud-station-info')!;
     this.signalInfoEl = document.getElementById('hud-signal-info')!;
     this.signalDotEl = document.getElementById('hud-signal-dot')!;
@@ -173,6 +184,7 @@ export class HUD {
       e.stopPropagation();
       this.trainConfigCardEl.classList.add('hidden');
       this.advancedConfigCardEl.classList.add('hidden');
+      this.syncWorldConfigUI();
       this.worldConfigCardEl.classList.toggle('hidden');
     });
 
@@ -256,11 +268,13 @@ export class HUD {
       if (size === 'S') document.getElementById('btn-size-s')?.classList.add('active');
       if (size === 'M') document.getElementById('btn-size-m')?.classList.add('active');
       if (size === 'L') document.getElementById('btn-size-l')?.classList.add('active');
+      if (size === 'XL') document.getElementById('btn-size-xl')?.classList.add('active');
     };
 
     document.getElementById('btn-size-s')?.addEventListener('click', () => setSize('S'));
     document.getElementById('btn-size-m')?.addEventListener('click', () => setSize('M'));
     document.getElementById('btn-size-l')?.addEventListener('click', () => setSize('L'));
+    document.getElementById('btn-size-xl')?.addEventListener('click', () => setSize('XL'));
 
     this.btnWorldRegenerateEl?.addEventListener('click', () => {
       this.worldConfigCardEl.classList.add('hidden');
@@ -628,18 +642,7 @@ export class HUD {
       this.advancedSystemsMgr = advancedSystemsMgr;
     }
 
-    this.selectedShape = trackNet.shape;
-    this.selectedSize = trackNet.size;
-
-    document.querySelectorAll('.shape-btn').forEach(btn => btn.classList.remove('active'));
-    if (trackNet.shape === 'I') document.getElementById('btn-shape-i')?.classList.add('active');
-    if (trackNet.shape === 'S') document.getElementById('btn-shape-s')?.classList.add('active');
-    if (trackNet.shape === 'O') document.getElementById('btn-shape-o')?.classList.add('active');
-
-    document.querySelectorAll('.size-btn').forEach(btn => btn.classList.remove('active'));
-    if (trackNet.size === 'S') document.getElementById('btn-size-s')?.classList.add('active');
-    if (trackNet.size === 'M') document.getElementById('btn-size-m')?.classList.add('active');
-    if (trackNet.size === 'L') document.getElementById('btn-size-l')?.classList.add('active');
+    this.syncWorldConfigUI();
 
     const pt = this.train.getVehiclePosition(0, this.trackNet);
     this.camera.resetToTrain(pt.x, pt.y);
@@ -688,6 +691,22 @@ export class HUD {
         this.btnDeadmanEl.classList.add('hidden');
       }
     }
+  }
+
+  public syncWorldConfigUI(): void {
+    this.selectedShape = this.trackNet.shape;
+    this.selectedSize = this.trackNet.size;
+
+    document.querySelectorAll('.shape-btn').forEach(btn => btn.classList.remove('active'));
+    if (this.selectedShape === 'I') document.getElementById('btn-shape-i')?.classList.add('active');
+    if (this.selectedShape === 'S') document.getElementById('btn-shape-s')?.classList.add('active');
+    if (this.selectedShape === 'O') document.getElementById('btn-shape-o')?.classList.add('active');
+
+    document.querySelectorAll('.size-btn').forEach(btn => btn.classList.remove('active'));
+    if (this.selectedSize === 'S') document.getElementById('btn-size-s')?.classList.add('active');
+    if (this.selectedSize === 'M') document.getElementById('btn-size-m')?.classList.add('active');
+    if (this.selectedSize === 'L') document.getElementById('btn-size-l')?.classList.add('active');
+    if (this.selectedSize === 'XL') document.getElementById('btn-size-xl')?.classList.add('active');
   }
 
   private attemptResetAlert(): void {
@@ -771,6 +790,30 @@ export class HUD {
     const speed = this.train.speedKmH;
     this.speedEl.textContent = `${speed}`;
 
+    const speedLimit = this.trackNet.getSpeedLimitAt(
+      this.train.trackId,
+      this.train.distance,
+      this.train.activeCrossovers.length > 0
+    );
+
+    const activeSign = this.trackNet.getActiveSpeedSign(
+      this.train.trackId,
+      this.train.distance,
+      this.train.facing,
+      this.train.activeCrossovers.length > 0
+    );
+
+    const nextSpeedSign = this.trackNet.getNextSpeedSignAhead(
+      this.train.trackId,
+      this.train.distance,
+      this.train.facing
+    );
+
+    const isOverspeed = speed > speedLimit;
+    this.speedEl.classList.toggle('overspeed', isOverspeed);
+    this.updateActiveSign(activeSign, isOverspeed);
+    this.updateUpcomingSpeedSign(nextSpeedSign, speedLimit);
+
     this.updateConsistDisplay();
 
     if (this.activeAlert) {
@@ -824,10 +867,18 @@ export class HUD {
       let aspectLabel = 'Clear';
 
       if (nextSig.signal.type === 'primary') {
-        aspectLabel = nextSig.signal.aspect === 'red' ? 'Stop' : 'Clear';
+        if (nextSig.signal.aspect === 'red') {
+          aspectLabel = 'Stop';
+        } else if (nextSig.signal.aspect === 'slow') {
+          aspectLabel = 'Diverging (40 km/h)';
+        } else {
+          aspectLabel = 'Clear';
+        }
       } else {
         if (nextSig.signal.aspect === 'yellow') {
           aspectLabel = 'Expect Stop';
+        } else if (nextSig.signal.aspect === 'slow') {
+          aspectLabel = 'Expect Diverging (40 km/h)';
         } else if (nextSig.signal.aspect === 'dark') {
           aspectLabel = 'Inactive';
         } else {
@@ -839,17 +890,17 @@ export class HUD {
 
       this.signalInfoEl.textContent = `[${typeTag}] ${nextSig.signal.name} (${distM} m) - ${aspectLabel}`;
 
-      let color = '#10b981';
-
-      if (nextSig.signal.aspect === 'yellow') {
-        color = '#f59e0b';
+      if (nextSig.signal.aspect === 'slow') {
+        this.signalDotEl.style.background = 'linear-gradient(180deg, #10b981 50%, #f59e0b 50%)';
+      } else if (nextSig.signal.aspect === 'yellow') {
+        this.signalDotEl.style.background = '#f59e0b';
       } else if (nextSig.signal.aspect === 'red') {
-        color = '#ef4444';
+        this.signalDotEl.style.background = '#ef4444';
       } else if (nextSig.signal.aspect === 'dark') {
-        color = '#71717a';
+        this.signalDotEl.style.background = '#71717a';
+      } else {
+        this.signalDotEl.style.background = '#10b981';
       }
-
-      this.signalDotEl.style.backgroundColor = color;
     }
 
     const targetThrottlePct = Math.round(this.train.targetThrottle * 100);
@@ -885,6 +936,90 @@ export class HUD {
       }
     } else {
       this.btnDeadmanEl.classList.add('hidden');
+    }
+  }
+
+  private updateActiveSign(sign: ActiveSpeedSign, isOverspeed: boolean): void {
+    if (!this.activeSignEl) return;
+
+    this.activeSignEl.classList.toggle('overspeed', isOverspeed);
+
+    const key = `${sign.isAdvanceWarning ? 'adv' : 'reg'}-${sign.displayVal}`;
+
+    if (key === this.lastActiveSignKey) return;
+
+    this.lastActiveSignKey = key;
+
+    if (sign.isAdvanceWarning) {
+      this.activeSignEl.innerHTML = `
+        <svg class="hud-sign-svg" width="38" height="34" viewBox="0 0 38 34">
+          <polygon points="1.5,1.5 36.5,1.5 19,32.5" fill="#18181b" />
+          <polygon points="3.5,3.5 34.5,3.5 19,30" fill="#ffffff" />
+          <polygon points="6,5.5 32,5.5 19,27" fill="#f59e0b" />
+          <text x="19" y="15" font-family="'Geist Mono', monospace" font-size="14.5" font-weight="900" fill="#18181b" text-anchor="middle">${sign.displayVal}</text>
+        </svg>
+      `;
+    } else {
+      this.activeSignEl.innerHTML = `
+        <svg class="hud-sign-svg" width="38" height="34" viewBox="0 0 38 34">
+          <rect x="2" y="2" width="34" height="30" rx="4" fill="#ffffff" stroke="#18181b" stroke-width="2" />
+          <text x="19" y="23" font-family="'Geist Mono', monospace" font-size="18" font-weight="900" fill="#18181b" text-anchor="middle">${sign.displayVal}</text>
+        </svg>
+      `;
+    }
+  }
+
+  private updateUpcomingSpeedSign(
+    nextSign: { sign: SpeedSign; distanceAhead: number } | null,
+    currentSpeedLimit: number
+  ): void {
+    if (!this.speedInfoTextEl || !this.speedMiniSignEl) return;
+
+    if (nextSign) {
+      const distM = Math.round(nextSign.distanceAhead);
+      const val = Math.round(nextSign.sign.speedKmH / 10);
+      const isAdv = !!nextSign.sign.isAdvanceWarning;
+
+      const key = `${isAdv ? 'adv' : 'reg'}-${val}-${distM}`;
+
+      if (key !== this.lastUpcomingSignKey) {
+        this.lastUpcomingSignKey = key;
+
+        if (isAdv) {
+          this.speedMiniSignEl.innerHTML = `
+            <svg width="20" height="17" viewBox="0 0 20 17">
+              <polygon points="1,1 19,1 10,16" fill="#18181b" />
+              <polygon points="2,2 18,2 10,14.5" fill="#ffffff" />
+              <polygon points="3.5,3.2 16.5,3.2 10,13" fill="#f59e0b" />
+              <text x="10" y="8" font-family="'Geist Mono', monospace" font-size="8" font-weight="900" fill="#18181b" text-anchor="middle">${val}</text>
+            </svg>
+          `;
+          this.speedInfoTextEl.innerHTML = `<span>Expect ${nextSign.sign.speedKmH} km/h</span><span class="sub">in ${distM} m</span>`;
+        } else {
+          this.speedMiniSignEl.innerHTML = `
+            <svg width="20" height="17" viewBox="0 0 20 17">
+              <rect x="1.5" y="1.5" width="17" height="14" rx="2.5" fill="#ffffff" stroke="#18181b" stroke-width="1.5" />
+              <text x="10" y="12" font-family="'Geist Mono', monospace" font-size="9.5" font-weight="900" fill="#18181b" text-anchor="middle">${val}</text>
+            </svg>
+          `;
+          this.speedInfoTextEl.innerHTML = `<span>Limit ${nextSign.sign.speedKmH} km/h</span><span class="sub">in ${distM} m</span>`;
+        }
+      }
+    } else {
+      const val = Math.round(currentSpeedLimit / 10);
+      const key = `none-${val}`;
+
+      if (key !== this.lastUpcomingSignKey) {
+        this.lastUpcomingSignKey = key;
+
+        this.speedMiniSignEl.innerHTML = `
+          <svg width="20" height="17" viewBox="0 0 20 17">
+            <rect x="1.5" y="1.5" width="17" height="14" rx="2.5" fill="#ffffff" stroke="#18181b" stroke-width="1.5" />
+            <text x="10" y="12" font-family="'Geist Mono', monospace" font-size="9.5" font-weight="900" fill="#18181b" text-anchor="middle">${val}</text>
+          </svg>
+        `;
+        this.speedInfoTextEl.innerHTML = `<span>Limit ${currentSpeedLimit} km/h</span><span class="sub">Cruising</span>`;
+      }
     }
   }
 }
