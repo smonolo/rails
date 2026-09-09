@@ -41,28 +41,28 @@ export class SignalManager {
           const fwdSecDist = Math.round(wrap(fwdPrimDist - 800, totalLen));
           const revSecDist = Math.round(wrap(revPrimDist + 800, totalLen));
 
-          const fwdPrimId = `sig-hp-t${trackId}-fwd-b${i + 1}`;
-          const revPrimId = `sig-hp-t${trackId}-rev-b${i + 1}`;
-          const fwdSecId = `sig-vr-t${trackId}-fwd-b${i + 1}`;
-          const revSecId = `sig-vr-t${trackId}-rev-b${i + 1}`;
+          const fwdPrimId = `sig-p-t${trackId}-fwd-b${i + 1}`;
+          const revPrimId = `sig-p-t${trackId}-rev-b${i + 1}`;
+          const fwdSecId = `sig-d-t${trackId}-fwd-b${i + 1}`;
+          const revSecId = `sig-d-t${trackId}-rev-b${i + 1}`;
 
           const primFwd = this.createSignal(
-            trackNet, fwdPrimId, `Hauptsignal Hp ${trackNum}.${i + 1} ▸`,
+            trackNet, fwdPrimId, `Primary Signal ${trackNum}.${i + 1} ▸`,
             trackId, 'primary', fwdPrimDist, 1, trackSide, i
           );
 
           const primRev = this.createSignal(
-            trackNet, revPrimId, `Hauptsignal Hp ${trackNum}.${i + 1}G ◂`,
+            trackNet, revPrimId, `Primary Signal ${trackNum}.${i + 1}R ◂`,
             trackId, 'primary', revPrimDist, -1, trackSide, i + 50
           );
 
           const secFwd = this.createSignal(
-            trackNet, fwdSecId, `Vorsignal Vr ${trackNum}.${i + 1} ▸`,
+            trackNet, fwdSecId, `Distant Signal ${trackNum}.${i + 1} ▸`,
             trackId, 'secondary', fwdSecDist, 1, trackSide, i, fwdPrimId
           );
 
           const secRev = this.createSignal(
-            trackNet, revSecId, `Vorsignal Vr ${trackNum}.${i + 1}G ◂`,
+            trackNet, revSecId, `Distant Signal ${trackNum}.${i + 1}R ◂`,
             trackId, 'secondary', revSecDist, -1, trackSide, i + 50, revPrimId
           );
 
@@ -76,10 +76,10 @@ export class SignalManager {
             : Math.round((b + 1) * blockLen) - 18;
           const nextIdx = (b + 1) % numBlocks;
 
-          const fwdPrimId = `sig-hp-t${trackId}-fwd-b${b + 1}`;
-          const fwdSecId = `sig-vr-t${trackId}-fwd-b${b + 1}`;
-          const revPrimId = `sig-hp-t${trackId}-rev-b${nextIdx + 1}`;
-          const revSecId = `sig-vr-t${trackId}-rev-b${nextIdx + 1}`;
+          const fwdPrimId = `sig-p-t${trackId}-fwd-b${b + 1}`;
+          const fwdSecId = `sig-d-t${trackId}-fwd-b${b + 1}`;
+          const revPrimId = `sig-p-t${trackId}-rev-b${nextIdx + 1}`;
+          const revSecId = `sig-d-t${trackId}-rev-b${nextIdx + 1}`;
 
           this.blocks.push({
             id: b,
@@ -117,28 +117,28 @@ export class SignalManager {
           const fwdSecDist = Math.max(80, fwdPrimDist - 800);
           const revSecDist = Math.min(totalLen - 80, revPrimDist + 800);
 
-          const fwdPrimId = `sig-hp-t${trackId}-fwd-b${i + 1}`;
-          const revPrimId = `sig-hp-t${trackId}-rev-b${i + 1}`;
-          const fwdSecId = `sig-vr-t${trackId}-fwd-b${i + 1}`;
-          const revSecId = `sig-vr-t${trackId}-rev-b${i + 1}`;
+          const fwdPrimId = `sig-p-t${trackId}-fwd-b${i + 1}`;
+          const revPrimId = `sig-p-t${trackId}-rev-b${i + 1}`;
+          const fwdSecId = `sig-d-t${trackId}-fwd-b${i + 1}`;
+          const revSecId = `sig-d-t${trackId}-rev-b${i + 1}`;
 
           const primFwd = this.createSignal(
-            trackNet, fwdPrimId, `Hauptsignal Hp ${trackNum}.${i + 1} ▸`,
+            trackNet, fwdPrimId, `Primary Signal ${trackNum}.${i + 1} ▸`,
             trackId, 'primary', fwdPrimDist, 1, trackSide, i
           );
 
           const primRev = this.createSignal(
-            trackNet, revPrimId, `Hauptsignal Hp ${trackNum}.${i + 1}G ◂`,
+            trackNet, revPrimId, `Primary Signal ${trackNum}.${i + 1}R ◂`,
             trackId, 'primary', revPrimDist, -1, trackSide, i + 50
           );
 
           const secFwd = this.createSignal(
-            trackNet, fwdSecId, `Vorsignal Vr ${trackNum}.${i + 1} ▸`,
+            trackNet, fwdSecId, `Distant Signal ${trackNum}.${i + 1} ▸`,
             trackId, 'secondary', fwdSecDist, 1, trackSide, i, fwdPrimId
           );
 
           const secRev = this.createSignal(
-            trackNet, revSecId, `Vorsignal Vr ${trackNum}.${i + 1}G ◂`,
+            trackNet, revSecId, `Distant Signal ${trackNum}.${i + 1}R ◂`,
             trackId, 'secondary', revSecDist, -1, trackSide, i + 50, revPrimId
           );
 
@@ -149,10 +149,10 @@ export class SignalManager {
           const startD = Math.round(leadLen + b * blockLen) + 18;
           const endD = Math.round(leadLen + (b + 1) * blockLen) - 18;
 
-          const fwdPrimId = `sig-hp-t${trackId}-fwd-b${b + 1}`;
-          const fwdSecId = `sig-vr-t${trackId}-fwd-b${b + 1}`;
-          const revPrimId = `sig-hp-t${trackId}-rev-b${b + 2}`;
-          const revSecId = `sig-vr-t${trackId}-rev-b${b + 2}`;
+          const fwdPrimId = `sig-p-t${trackId}-fwd-b${b + 1}`;
+          const fwdSecId = `sig-d-t${trackId}-fwd-b${b + 1}`;
+          const revPrimId = `sig-p-t${trackId}-rev-b${b + 2}`;
+          const revSecId = `sig-d-t${trackId}-rev-b${b + 2}`;
 
           this.blocks.push({
             id: b,
@@ -432,7 +432,7 @@ export class SignalManager {
         linkedSec.manualOverride = true;
       }
 
-      const aspectLabel = sig.aspect === 'red' ? 'Hp 0 (Stop)' : 'Hp 1 (Clear)';
+      const aspectLabel = sig.aspect === 'red' ? 'Stop' : 'Clear';
       const msg = `${sig.name} Aspect: ${aspectLabel}`;
 
       return { signal: sig, message: msg };
@@ -449,7 +449,7 @@ export class SignalManager {
         sig.manualAspect = sig.aspect;
         sig.manualOverride = true;
 
-        const aspectLabel = sig.aspect === 'yellow' ? 'Vr 0 (Expect Stop)' : 'Vr 1 (Expect Clear)';
+        const aspectLabel = sig.aspect === 'yellow' ? 'Expect Stop' : 'Expect Clear';
         const msg = `${sig.name} Aspect: ${aspectLabel}`;
 
         return { signal: sig, message: msg };
@@ -525,7 +525,7 @@ export class SignalManager {
         ctx.fillStyle = '#ffffff';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        const label = sig.direction === 1 ? 'Hp ▸' : '◂ Hp';
+        const label = sig.direction === 1 ? 'P ▸' : '◂ P';
         ctx.fillText(label, 0, 16);
       } else {
         const size = 9;
@@ -560,7 +560,7 @@ export class SignalManager {
         ctx.fillStyle = '#ffffff';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        const label = sig.direction === 1 ? 'Vr ▸' : '◂ Vr';
+        const label = sig.direction === 1 ? 'D ▸' : '◂ D';
         ctx.fillText(label, 0, 16);
       }
 

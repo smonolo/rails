@@ -4,6 +4,7 @@ import { SignalManager } from '../core/signals.ts';
 import { TrackNetwork } from '../core/track.ts';
 import { Camera } from './camera.ts';
 import { clamp } from '../utils/math.ts';
+import { AdvancedSystemsManager } from '../core/advanced.ts';
 import type { WarningAlert, TrainType, WorldShape, WorldSize } from '../types.ts';
 
 export class HUD {
@@ -12,6 +13,7 @@ export class HUD {
   private signalMgr: SignalManager;
   private trackNet: TrackNetwork;
   private camera: Camera;
+  public advancedSystemsMgr: AdvancedSystemsManager;
   public selectedShape: WorldShape = 'O';
   public selectedSize: WorldSize = 'M';
   public onRegenerateShape?: (shape: WorldShape, size: WorldSize) => void;
@@ -43,6 +45,9 @@ export class HUD {
   private btnCarrPlus!: HTMLElement;
   private btnEb!: HTMLElement;
 
+  private btnDeadmanEl!: HTMLElement;
+  private deadmanLampTextEl!: HTMLElement;
+
   private trainConfigCardEl!: HTMLElement;
   private btnToggleTrainConfigEl!: HTMLElement;
   private btnCloseTrainConfigEl!: HTMLElement;
@@ -51,6 +56,12 @@ export class HUD {
   private btnToggleWorldConfigEl!: HTMLElement;
   private btnCloseWorldConfigEl!: HTMLElement;
   private btnWorldRegenerateEl!: HTMLElement;
+
+  private advancedConfigCardEl!: HTMLElement;
+  private btnToggleAdvancedConfigEl!: HTMLElement;
+  private btnCloseAdvancedConfigEl!: HTMLElement;
+  private btnToggleAdvancedEl!: HTMLElement;
+  private btnToggleDeadmanEl!: HTMLElement;
 
   private reverserTrackEl!: HTMLElement;
   private reverserHandleEl!: HTMLElement;
@@ -66,13 +77,15 @@ export class HUD {
     stationMgr: StationManager,
     signalMgr: SignalManager,
     trackNet: TrackNetwork,
-    camera: Camera
+    camera: Camera,
+    advancedSystemsMgr: AdvancedSystemsManager
   ) {
     this.train = train;
     this.stationMgr = stationMgr;
     this.signalMgr = signalMgr;
     this.trackNet = trackNet;
     this.camera = camera;
+    this.advancedSystemsMgr = advancedSystemsMgr;
 
     this.bindDom();
     this.setupEventListeners();
@@ -110,6 +123,9 @@ export class HUD {
     this.btnCarrPlus = document.getElementById('btn-carr-plus')!;
     this.btnEb = document.getElementById('btn-eb')!;
 
+    this.btnDeadmanEl = document.getElementById('btn-deadman')!;
+    this.deadmanLampTextEl = document.getElementById('deadman-lamp-text')!;
+
     this.trainConfigCardEl = document.getElementById('train-config-card')!;
     this.btnToggleTrainConfigEl = document.getElementById('btn-toggle-train-config')!;
     this.btnCloseTrainConfigEl = document.getElementById('btn-close-train-config')!;
@@ -118,6 +134,14 @@ export class HUD {
     this.btnToggleWorldConfigEl = document.getElementById('btn-toggle-world-config')!;
     this.btnCloseWorldConfigEl = document.getElementById('btn-close-world-config')!;
     this.btnWorldRegenerateEl = document.getElementById('btn-world-regenerate')!;
+
+    this.advancedConfigCardEl = document.getElementById('advanced-config-card')!;
+    this.btnToggleAdvancedConfigEl = document.getElementById('btn-toggle-advanced-config')!;
+    this.btnCloseAdvancedConfigEl = document.getElementById('btn-close-advanced-config')!;
+    this.btnToggleAdvancedEl = document.getElementById('btn-toggle-advanced')!;
+    this.btnToggleDeadmanEl = document.getElementById('btn-toggle-deadman')!;
+
+    this.syncAdvancedConfigUI();
   }
 
   private setupEventListeners(): void {
@@ -137,6 +161,7 @@ export class HUD {
     this.btnToggleTrainConfigEl?.addEventListener('click', (e) => {
       e.stopPropagation();
       this.worldConfigCardEl.classList.add('hidden');
+      this.advancedConfigCardEl.classList.add('hidden');
       this.trainConfigCardEl.classList.toggle('hidden');
     });
 
@@ -147,11 +172,68 @@ export class HUD {
     this.btnToggleWorldConfigEl?.addEventListener('click', (e) => {
       e.stopPropagation();
       this.trainConfigCardEl.classList.add('hidden');
+      this.advancedConfigCardEl.classList.add('hidden');
       this.worldConfigCardEl.classList.toggle('hidden');
     });
 
     this.btnCloseWorldConfigEl?.addEventListener('click', () => {
       this.worldConfigCardEl.classList.add('hidden');
+    });
+
+    this.btnToggleAdvancedConfigEl?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.trainConfigCardEl.classList.add('hidden');
+      this.worldConfigCardEl.classList.add('hidden');
+      this.advancedConfigCardEl.classList.toggle('hidden');
+    });
+
+    this.btnCloseAdvancedConfigEl?.addEventListener('click', () => {
+      this.advancedConfigCardEl.classList.add('hidden');
+    });
+
+    this.btnToggleAdvancedEl?.addEventListener('click', () => {
+      const next = !this.advancedSystemsMgr.config.advancedControls;
+      this.advancedSystemsMgr.setAdvancedControls(next);
+      this.syncAdvancedConfigUI();
+
+      if (next) {
+        this.triggerAlert({
+          type: 'info',
+          title: 'Advanced systems active',
+          message: 'Deadman control system enabled. Acknowledge with Q or cab pedal.',
+          canReset: true
+        });
+
+        setTimeout(() => {
+          if (this.activeAlert?.title === 'Advanced systems active') {
+            this.clearAlert();
+          }
+        }, 3500);
+      } else {
+        this.triggerAlert({
+          type: 'info',
+          title: 'Advanced systems disabled',
+          message: 'Standard driving controls active.',
+          canReset: true
+        });
+
+        setTimeout(() => {
+          if (this.activeAlert?.title === 'Advanced systems disabled') {
+            this.clearAlert();
+          }
+        }, 2500);
+      }
+    });
+
+    this.btnToggleDeadmanEl?.addEventListener('click', () => {
+      const next = !this.advancedSystemsMgr.config.deadman;
+      this.advancedSystemsMgr.setDeadman(next);
+      this.syncAdvancedConfigUI();
+    });
+
+    this.btnDeadmanEl?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.acknowledgeDeadman();
     });
 
     const setShape = (shape: WorldShape) => {
@@ -370,7 +452,21 @@ export class HUD {
       }
 
       if (e.code === 'KeyT') {
+        this.worldConfigCardEl.classList.add('hidden');
+        this.advancedConfigCardEl.classList.add('hidden');
         this.trainConfigCardEl.classList.toggle('hidden');
+        return;
+      }
+
+      if (e.code === 'KeyU') {
+        this.trainConfigCardEl.classList.add('hidden');
+        this.worldConfigCardEl.classList.add('hidden');
+        this.advancedConfigCardEl.classList.toggle('hidden');
+        return;
+      }
+
+      if (e.code === 'KeyQ') {
+        this.acknowledgeDeadman();
         return;
       }
 
@@ -378,6 +474,7 @@ export class HUD {
         this.closeControlsModal();
         this.trainConfigCardEl.classList.add('hidden');
         this.worldConfigCardEl.classList.add('hidden');
+        this.advancedConfigCardEl.classList.add('hidden');
         return;
       }
 
@@ -515,11 +612,22 @@ export class HUD {
     this.setReverser(1);
   }
 
-  public resetForWorld(train: Train, stationMgr: StationManager, signalMgr: SignalManager, trackNet: TrackNetwork): void {
+  public resetForWorld(
+    train: Train,
+    stationMgr: StationManager,
+    signalMgr: SignalManager,
+    trackNet: TrackNetwork,
+    advancedSystemsMgr?: AdvancedSystemsManager
+  ): void {
     this.train = train;
     this.stationMgr = stationMgr;
     this.signalMgr = signalMgr;
     this.trackNet = trackNet;
+
+    if (advancedSystemsMgr) {
+      this.advancedSystemsMgr = advancedSystemsMgr;
+    }
+
     this.selectedShape = trackNet.shape;
     this.selectedSize = trackNet.size;
 
@@ -540,7 +648,46 @@ export class HUD {
     this.updateLeverHandles();
     this.updateConsistDisplay();
     this.setReverser(1);
+    this.advancedSystemsMgr.reset();
+    this.syncAdvancedConfigUI();
     this.worldConfigCardEl?.classList.add('hidden');
+    this.advancedConfigCardEl?.classList.add('hidden');
+    this.trainConfigCardEl?.classList.add('hidden');
+  }
+
+  public acknowledgeDeadman(): void {
+    const acked = this.advancedSystemsMgr.acknowledgeDeadman();
+
+    if (acked) {
+      if (this.activeAlert && (this.activeAlert.title.toLowerCase().includes('deadman') || this.activeAlert.message.toLowerCase().includes('deadman'))) {
+        if (!this.train.isEmergencyBrakeLocked) {
+          this.clearAlert();
+        }
+      }
+    }
+  }
+
+  public syncAdvancedConfigUI(): void {
+    const cfg = this.advancedSystemsMgr.config;
+
+    if (this.btnToggleAdvancedEl) {
+      this.btnToggleAdvancedEl.textContent = cfg.advancedControls ? 'ON' : 'OFF';
+      this.btnToggleAdvancedEl.classList.toggle('active', cfg.advancedControls);
+    }
+
+    if (this.btnToggleDeadmanEl) {
+      this.btnToggleDeadmanEl.textContent = cfg.deadman ? 'ON' : 'OFF';
+      this.btnToggleDeadmanEl.classList.toggle('active', cfg.deadman);
+      (this.btnToggleDeadmanEl as HTMLButtonElement).disabled = !cfg.advancedControls;
+    }
+
+    if (this.btnDeadmanEl) {
+      if (cfg.advancedControls && cfg.deadman) {
+        this.btnDeadmanEl.classList.remove('hidden');
+      } else {
+        this.btnDeadmanEl.classList.add('hidden');
+      }
+    }
   }
 
   private attemptResetAlert(): void {
@@ -550,6 +697,7 @@ export class HUD {
     }
 
     if (this.train.resetEmergencyBrake()) {
+      this.advancedSystemsMgr.acknowledgeDeadman();
       this.clearAlert();
     }
   }
@@ -673,19 +821,21 @@ export class HUD {
 
     if (nextSig) {
       const distM = Math.round(nextSig.distanceAhead);
-      let aspectLabel = 'Hp 1 (Clear)';
+      let aspectLabel = 'Clear';
 
-      if (nextSig.signal.aspect === 'red') {
-        aspectLabel = 'Hp 0 (Stop)';
-      } else if (nextSig.signal.aspect === 'yellow') {
-        aspectLabel = 'Vr 0 (Expect Stop)';
-      } else if (nextSig.signal.aspect === 'dark') {
-        aspectLabel = 'Vr (Dark / Inactive)';
-      } else if (nextSig.signal.type === 'secondary') {
-        aspectLabel = 'Vr 1 (Expect Clear)';
+      if (nextSig.signal.type === 'primary') {
+        aspectLabel = nextSig.signal.aspect === 'red' ? 'Stop' : 'Clear';
+      } else {
+        if (nextSig.signal.aspect === 'yellow') {
+          aspectLabel = 'Expect Stop';
+        } else if (nextSig.signal.aspect === 'dark') {
+          aspectLabel = 'Inactive';
+        } else {
+          aspectLabel = 'Expect Clear';
+        }
       }
 
-      const typeTag = nextSig.signal.type === 'primary' ? 'Hp' : 'Vr';
+      const typeTag = nextSig.signal.type === 'primary' ? 'P' : 'D';
 
       this.signalInfoEl.textContent = `[${typeTag}] ${nextSig.signal.name} (${distM} m) - ${aspectLabel}`;
 
@@ -715,5 +865,26 @@ export class HUD {
 
     const actualBrakePct = Math.round(this.train.brake * 100);
     this.brakeFillEl.style.height = `${actualBrakePct}%`;
+
+    const deadmanStatus = this.advancedSystemsMgr.getDeadmanStatus(this.train.speedKmH);
+
+    if (deadmanStatus.enabled) {
+      this.btnDeadmanEl.classList.remove('hidden');
+      this.btnDeadmanEl.classList.toggle('warning-visual', deadmanStatus.stage === 'visual');
+      this.btnDeadmanEl.classList.toggle('warning-urgent', deadmanStatus.stage === 'urgent');
+      this.btnDeadmanEl.classList.toggle('enforced', deadmanStatus.stage === 'enforced');
+
+      if (deadmanStatus.stage === 'enforced') {
+        this.deadmanLampTextEl.textContent = 'BRAKE';
+      } else if (deadmanStatus.stage === 'urgent') {
+        this.deadmanLampTextEl.textContent = 'ALARM!';
+      } else if (deadmanStatus.stage === 'visual') {
+        this.deadmanLampTextEl.textContent = 'ALERT';
+      } else {
+        this.deadmanLampTextEl.textContent = 'DEADMAN';
+      }
+    } else {
+      this.btnDeadmanEl.classList.add('hidden');
+    }
   }
 }

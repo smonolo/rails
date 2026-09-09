@@ -19,9 +19,9 @@ export class StationManager {
     const prng = new PRNG(seed);
 
     const namePrefixes = [
-      'Kronberg', 'Westerwald', 'Eisental', 'Lindenhafen', 'Schönbrunn',
-      'Tannenberg', 'Bergheim', 'Waldau', 'Friedrichshafen', 'Altenburg',
-      'Rosenheim', 'Neustadt', 'Falkenstein', 'Sonnenberg', 'Kaiserslautern'
+      'Highland', 'Riverdale', 'Westport', 'Oakridge', 'Fairview',
+      'Silverton', 'Grandview', 'Lakewood', 'Kingsbury', 'Beacon Hill',
+      'Cedar Valley', 'Maplewood', 'Pinecrest', 'Meadowbrook', 'Rockland'
     ];
 
     const shuffled = [...namePrefixes].sort(() => prng.next() - 0.5);
@@ -88,7 +88,7 @@ export class StationManager {
       const len1 = track1.totalLength;
 
       const fractions = [0.15, 0.50, 0.85];
-      const suffixes = ['Nord', 'Central', 'Süd'];
+      const suffixes = ['North', 'Central', 'South'];
 
       for (let i = 0; i < fractions.length; i++) {
         const town = shuffled[i % shuffled.length];

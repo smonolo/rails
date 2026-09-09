@@ -1,4 +1,4 @@
-import type { WorldShape, WorldSize } from '../types.ts';
+import type { WorldShape, WorldSize, AdvancedSystemsConfig } from '../types.ts';
 
 export interface WorldConfig {
   seed: number | string;
@@ -53,5 +53,52 @@ export function saveWorldConfig(config: WorldConfig): void {
   currentUrl.searchParams.set('seed', String(config.seed));
   currentUrl.searchParams.set('shape', config.shape);
   currentUrl.searchParams.set('size', config.size);
+  window.history.replaceState({}, '', currentUrl.toString());
+}
+
+export function loadAdvancedConfig(): AdvancedSystemsConfig {
+  const urlParams = new URLSearchParams(window.location.search);
+  const urlAdv = urlParams.get('advanced');
+  const urlDeadman = urlParams.get('deadman');
+  const storedAdv = localStorage.getItem('rails_advanced_controls');
+  const storedDeadman = localStorage.getItem('rails_deadman');
+
+  let advancedControls = false;
+
+  if (urlAdv !== null) {
+    advancedControls = urlAdv === '1' || urlAdv.toLowerCase() === 'true';
+  } else if (storedAdv !== null) {
+    advancedControls = storedAdv === 'true';
+  }
+
+  let deadman = true;
+
+  if (urlDeadman !== null) {
+    deadman = urlDeadman === '1' || urlDeadman.toLowerCase() === 'true';
+  } else if (storedDeadman !== null) {
+    deadman = storedDeadman === 'true';
+  }
+
+  return { advancedControls, deadman };
+}
+
+export function saveAdvancedConfig(config: AdvancedSystemsConfig): void {
+  localStorage.setItem('rails_advanced_controls', String(config.advancedControls));
+  localStorage.setItem('rails_deadman', String(config.deadman));
+
+  const currentUrl = new URL(window.location.href);
+
+  if (config.advancedControls) {
+    currentUrl.searchParams.set('advanced', '1');
+  } else {
+    currentUrl.searchParams.delete('advanced');
+  }
+
+  if (!config.deadman) {
+    currentUrl.searchParams.set('deadman', '0');
+  } else {
+    currentUrl.searchParams.delete('deadman');
+  }
+
   window.history.replaceState({}, '', currentUrl.toString());
 }

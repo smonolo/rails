@@ -13,7 +13,7 @@ Developer and AI agent guidelines for working on the `rails` repository.
 - **`src/core/` (Simulation & Domain)**:
   - **`track.ts`**: Catmull-Rom spline curves, arc-length distance parameterization, junction switches, crossover transition zones, switch occupancy interlocking.
   - **`train.ts`**: Train physics engine, consist tracking, speed/tractive force curves, braking simulation, lateral G and derailment calculations, canvas rendering.
-  - **`signals.ts`**: German H/V block signaling system, *Gleiswechselbetrieb* (GWB) bidirectional track logic, SPAD detection, aspect synchronization, canvas rendering.
+  - **`signals.ts`**: Block signaling system, bidirectional track logic, SPAD detection, aspect synchronization, canvas rendering.
   - **`stations.ts`**: Platform waypoints, passenger dwell timers, dispatching state machine.
   - **`scenery.ts`**: Overhead catenary masts and contact wires, level crossings with safety barriers, roads, buildings, and vegetation.
 - **`src/ui/` (Presentation & Viewport)**:
@@ -48,21 +48,21 @@ When modifying or generating code in this repository, you must adhere to the fol
 
 ## 3. Domain Logic & Invariants
 
-### A. Railway Signaling (German H/V & GWB)
+### A. Railway Signaling
 1. **Signal Pairs**:
-   - Every primary signal (*Hauptsignal* - `Hp`) must have a corresponding secondary distant signal (*Vorsignal* - `Vr`).
+   - Every primary signal (`PrimarySignal` - `P`) must have a corresponding secondary distant signal (`DistantSignal` - `D`).
    - The distant signal is positioned at braking distance (~800 m) ahead of the primary signal in the direction of travel.
 2. **Synchronization Invariant**:
    - Secondary signal aspects are strictly derived from their linked primary signal:
-     - `Hp` is `green` $\iff$ `Vr` is `green` (`Vr 1 - Expect Clear`).
-     - `Hp` is `red` $\iff$ `Vr` is `yellow` (`Vr 0 - Expect Stop`).
+     - Primary is `green` (`Clear`) $\iff$ Distant is `green` (`Expect Clear`).
+     - Primary is `red` (`Stop`) $\iff$ Distant is `yellow` (`Expect Stop`).
    - Toggling either the primary or secondary signal manually must toggle the entire pair in lockstep.
 3. **Block Boundaries**:
    - Each block section begins exactly at its entry primary signal (`startDistance = sig.distance`) and terminates at the next primary signal (`endDistance = nextSig.distance`).
    - A block must never be marked occupied before the front of the train has crossed the signal controlling that block.
 4. **Directional Isolation & Opposing Block Protection**:
-   - Mainlines support bidirectional traffic (*Gleiswechselbetrieb*).
-   - When a block section is occupied by a train, opposing primary signals protecting that section turn red (`Hp 0`) to prevent oncoming head-on collisions.
+   - Mainlines support bidirectional traffic.
+   - When a block section is occupied by a train, opposing primary signals protecting that section turn red (`Stop`) to prevent oncoming head-on collisions.
    - SPAD detection remains directionally isolated: only signals matching the train's active travel direction (`trainFacing` and velocity sign) can trip SPAD enforcement for that train.
 5. **Neutral Styling**:
    - Never highlight manual signal changes or switch states in blue or artificial colors.

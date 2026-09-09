@@ -664,6 +664,88 @@ html, body {
   background: rgba(255, 255, 255, 0.22);
 }
 
+.advanced-config-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 220px;
+  padding: 14px 16px;
+}
+
+.config-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 8px;
+}
+
+.toggle-text-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.toggle-main-label {
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-sm-white);
+}
+
+.toggle-sub-label {
+  font-family: var(--font-body);
+  font-size: 10px;
+  color: var(--color-neutral-400);
+}
+
+.sys-toggle-btn {
+  border: 1px solid var(--color-border);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--color-neutral-400);
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  flex-shrink: 0;
+}
+
+.sys-toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--color-sm-white);
+}
+
+.sys-toggle-btn.active {
+  background: #ffffff;
+  color: var(--color-sm-black);
+  border-color: #ffffff;
+}
+
+.sys-toggle-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.config-divider {
+  width: 100%;
+  height: 1px;
+  background: var(--color-border-subtle);
+}
+
+.deadman-info-box {
+  font-family: var(--font-body);
+  font-size: 10px;
+  line-height: 1.4;
+  color: var(--color-neutral-400);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 6px;
+  padding: 6px 8px;
+}
+
 .hud-controls-cluster {
   display: flex;
   align-items: flex-end;
@@ -729,6 +811,84 @@ html, body {
   color: var(--color-sm-white);
   text-align: center;
   width: 100%;
+}
+
+.telemetry-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+
+.btn-deadman {
+  width: 100%;
+  height: 26px;
+  box-sizing: border-box;
+  padding: 0 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--color-neutral-400);
+  border-radius: 6px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.btn-deadman:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+.btn-deadman:active {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.btn-deadman.warning-visual {
+  background: #f59e0b;
+  border-color: #fbbf24;
+  color: #000000;
+  animation: deadmanPulse 0.9s ease-in-out infinite alternate;
+}
+
+.btn-deadman.warning-urgent {
+  background: #ef4444;
+  border-color: #f87171;
+  color: #ffffff;
+  animation: deadmanFlash 0.22s linear infinite alternate;
+}
+
+.btn-deadman.enforced {
+  background: #b91c1c;
+  border-color: #ef4444;
+  color: #ffffff;
+}
+
+@keyframes deadmanPulse {
+  from {
+    filter: brightness(1);
+  }
+  to {
+    filter: brightness(1.28);
+  }
+}
+
+@keyframes deadmanFlash {
+  from {
+    background: #ef4444;
+    color: #ffffff;
+  }
+  to {
+    background: #7f1d1d;
+    color: #fca5a5;
+  }
 }
 
 .btn-eb {
@@ -1167,6 +1327,12 @@ html, body {
     gap: 6px;
   }
 
+  .advanced-config-card {
+    width: 150px;
+    padding: 10px 10px;
+    gap: 6px;
+  }
+
   .world-regen-btn {
     font-size: 10px;
     padding: 5px 6px;
@@ -1202,6 +1368,11 @@ html, body {
 
   .speed-num {
     font-size: 32px;
+  }
+
+  .btn-deadman {
+    height: 22px;
+    font-size: 9px;
   }
 
   .btn-eb {
@@ -1291,8 +1462,13 @@ html, body {
     padding: 8px 10px;
   }
 
+  .btn-deadman {
+    height: 20px;
+    font-size: 8px;
+  }
+
   .btn-eb {
-    height: 28px;
+    height: 24px;
   }
 
   .levers-card {
@@ -1326,6 +1502,12 @@ html, body {
   }
 
   .train-config-card {
+    width: 130px;
+    padding: 6px 8px;
+    gap: 4px;
+  }
+
+  .advanced-config-card {
     width: 130px;
     padding: 6px 8px;
     gap: 4px;

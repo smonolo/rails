@@ -97,3 +97,22 @@ export interface WorldBounds {
   minY: number;
   maxY: number;
 }
+
+export type DeadmanWarningStage = 'none' | 'visual' | 'urgent' | 'enforced';
+
+export interface DeadmanStatus {
+  enabled: boolean;
+  active: boolean;
+  stage: DeadmanWarningStage;
+  timer: number;
+  maxTimer: number;
+  countdown: number;
+  warningVisual: boolean;
+  warningUrgent: boolean;
+  enforced: boolean;
+}
+
+export interface AdvancedSystemsConfig {
+  advancedControls: boolean;
+  deadman: boolean;
+}

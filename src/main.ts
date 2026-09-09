@@ -6,6 +6,7 @@ import { StationManager } from './core/stations.ts';
 import { SceneryManager } from './core/scenery.ts';
 import { Camera } from './ui/camera.ts';
 import { HUD } from './ui/hud.ts';
+import { AdvancedSystemsManager } from './core/advanced.ts';
 import { loadWorldConfig, saveWorldConfig } from './utils/config.ts';
 import { distance } from './utils/math.ts';
 import type { WorldShape, WorldSize, WorldBounds } from './types.ts';
@@ -18,6 +19,7 @@ class Game {
   private signalMgr: SignalManager;
   private stationMgr: StationManager;
   private sceneryMgr: SceneryManager;
+  private advancedSystemsMgr: AdvancedSystemsManager;
   private camera: Camera;
   private hud: HUD;
 
@@ -52,12 +54,13 @@ class Game {
     this.signalMgr = new SignalManager(this.trackNet);
     this.stationMgr = new StationManager(this.trackNet, this.seed);
     this.sceneryMgr = new SceneryManager(this.trackNet, this.stationMgr.stations, this.seed);
+    this.advancedSystemsMgr = new AdvancedSystemsManager();
 
     const spawnPt = this.train.getVehiclePosition(0, this.trackNet);
     this.camera = new Camera(spawnPt.x, spawnPt.y);
     this.camera.setWorldBounds(this.trackNet.worldBounds);
 
-    this.hud = new HUD(this.train, this.stationMgr, this.signalMgr, this.trackNet, this.camera);
+    this.hud = new HUD(this.train, this.stationMgr, this.signalMgr, this.trackNet, this.camera, this.advancedSystemsMgr);
     this.hud.selectedShape = this.currentShape;
     this.hud.selectedSize = this.currentSize;
     this.hud.onRegenerateShape = (shape, size) => {
@@ -98,7 +101,7 @@ class Game {
     this.signalMgr = new SignalManager(this.trackNet);
     this.sceneryMgr.generateScenery(this.trackNet, this.stationMgr.stations, this.seed);
     this.train = new Train(this.trackNet);
-    this.hud.resetForWorld(this.train, this.stationMgr, this.signalMgr, this.trackNet);
+    this.hud.resetForWorld(this.train, this.stationMgr, this.signalMgr, this.trackNet, this.advancedSystemsMgr);
 
     const spawnPt = this.train.getVehiclePosition(0, this.trackNet);
     this.camera.resetToTrain(spawnPt.x, spawnPt.y);
@@ -335,10 +338,43 @@ class Game {
 
       this.hud.triggerAlert({
         type: 'danger',
-        title: 'Signal passed at danger (Hp 0)',
-        message: `Passed ${signalEvent.signalName} at Danger (Hp 0). Emergency brake enforcement active.`,
+        title: 'Signal passed at danger (Stop)',
+        message: `Passed ${signalEvent.signalName} at Danger (Stop). Emergency brake enforcement active.`,
         canReset: false
       });
+    }
+
+    const deadmanEvent = this.advancedSystemsMgr.update(
+      dt,
+      this.train.speedKmH,
+      this.train.isEmergencyBrakeLocked
+    );
+
+    if (deadmanEvent) {
+      if (deadmanEvent.type === 'enforce' && !this.train.isEmergencyBrakeLocked) {
+        this.train.tripEmergencyBrake(deadmanEvent.reason || 'Deadman control enforcement: vigilance unacknowledged');
+
+        this.hud.triggerAlert({
+          type: 'danger',
+          title: 'Deadman emergency braking enforcement',
+          message: 'Deadman vigilance unacknowledged within 35 seconds. Emergency brake locked until standstill.',
+          canReset: false
+        });
+      } else if (deadmanEvent.type === 'urgent') {
+        this.hud.triggerAlert({
+          type: 'danger',
+          title: 'Deadman alert active',
+          message: 'Acknowledge vigilance immediately (press Q or cab pedal). Emergency braking in 2.5s.',
+          canReset: true
+        });
+      } else if (deadmanEvent.type === 'visual') {
+        this.hud.triggerAlert({
+          type: 'warning',
+          title: 'Deadman vigilance warning',
+          message: 'Acknowledge deadman control (press Q or cab pedal).',
+          canReset: true
+        });
+      }
     }
 
     const stationStatus = this.stationMgr.update(
