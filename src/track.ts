@@ -342,41 +342,57 @@ export class TrackNetwork {
   }
 
   private generateOShape(prng: PRNG, size: WorldSize): void {
-    let centerX = 2400;
-    let centerY = 1200;
-    let rx = 1150 + prng.range(-30, 30);
-    let ry = 700 + prng.range(-20, 20);
+    let baseR = prng.range(800, 950);
+    let centerX = 2500 + prng.range(-60, 60);
+    let centerY = 1500 + prng.range(-40, 40);
     let crossLen = 240;
     let crossGap = 80;
 
     if (size === 'S') {
-      centerX = 1600;
-      centerY = 1000;
-      rx = 750 + prng.range(-20, 20);
-      ry = 480 + prng.range(-15, 15);
+      baseR = prng.range(550, 680);
+      centerX = 1800 + prng.range(-40, 40);
+      centerY = 1200 + prng.range(-30, 30);
       crossLen = 200;
       crossGap = 60;
     } else if (size === 'L') {
-      centerX = 3200;
-      centerY = 1600;
-      rx = 1750 + prng.range(-40, 40);
-      ry = 1050 + prng.range(-30, 30);
+      baseR = prng.range(1150, 1350);
+      centerX = 3400 + prng.range(-80, 80);
+      centerY = 1900 + prng.range(-60, 60);
       crossLen = 240;
       crossGap = 80;
     }
 
-    const numWp = 12;
+    const aspectRatio = prng.range(1.35, 1.65);
+    const rx = baseR * aspectRatio;
+    const ry = baseR;
+    const sAmp = ry * prng.range(0.14, 0.22);
+    const sPhase = prng.range(0, Math.PI * 2);
+    const h3Amp = ry * prng.range(0.03, 0.08);
+    const h3Phase = prng.range(0, Math.PI * 2);
+    const rotAngle = prng.range(-0.35, 0.35);
+    const xWarp = prng.range(-0.06, 0.06);
+
+    const cosRot = Math.cos(rotAngle);
+    const sinRot = Math.sin(rotAngle);
+
+    const numWp = 16;
     const waypoints: Point2D[] = [];
 
     for (let i = 0; i < numWp; i++) {
-      const angle = (i / numWp) * Math.PI * 2;
-      const rVar = prng.range(-15, 15);
-      const curRx = rx + rVar;
-      const curRy = ry + rVar * 0.7;
+      const theta = (i / numWp) * Math.PI * 2;
+      const sinT = Math.sin(theta);
+      const cosT = Math.cos(theta);
+
+      const xLocal = rx * (cosT + xWarp * Math.cos(2 * theta));
+      const sCurve = sAmp * Math.sin(2 * theta + sPhase) + h3Amp * Math.sin(3 * theta + h3Phase);
+      const yLocal = sinT * (ry + sCurve);
+
+      const xRot = xLocal * cosRot - yLocal * sinRot;
+      const yRot = xLocal * sinRot + yLocal * cosRot;
 
       waypoints.push({
-        x: centerX + Math.cos(angle) * curRx,
-        y: centerY + Math.sin(angle) * curRy
+        x: centerX + xRot,
+        y: centerY + yRot
       });
     }
 
@@ -384,7 +400,7 @@ export class TrackNetwork {
     this.generateOffsetTracks(centerPoints, true);
 
     const totalLen = this.tracks[0].totalLength;
-    const cross1Dist = Math.round(totalLen * 0.18);
+    const cross1Dist = Math.round(totalLen * 0.28);
     const cross2Dist = Math.round(totalLen * 0.68);
 
     this.addSequentialCrossovers('sw-cross-n', 'North Crossover', cross1Dist, crossLen, crossGap);
@@ -472,7 +488,8 @@ export class TrackNetwork {
     trainTrackId: number,
     trainHeadDist: number,
     trainTailDist: number,
-    activeTransitionSwitchId?: string
+    activeTransitionSwitchId?: string,
+    trainPositions?: { x: number; y: number }[]
   ): boolean {
     if (activeTransitionSwitchId && activeTransitionSwitchId === switchId) {
       return true;
@@ -481,6 +498,18 @@ export class TrackNetwork {
     const sw = this.switches.find(s => s.id === switchId);
 
     if (!sw) return false;
+
+    if (trainPositions && trainPositions.length > 0) {
+      for (const pos of trainPositions) {
+        for (const pt of sw.path) {
+          const dx = pos.x - pt.x;
+          const dy = pos.y - pt.y;
+          if (dx * dx + dy * dy < 324) {
+            return true;
+          }
+        }
+      }
+    }
 
     const zones = this.crossoverZones.filter(z => z.switchId === switchId);
 
@@ -584,40 +613,63 @@ export class TrackNetwork {
     return { x, y, angle };
   }
 
+  public getCrossoverPointAtDistance(
+    zone: CrossoverZone,
+    dist: number
+  ): { x: number; y: number; angle: number } {
+    const clampedDist = Math.max(0, Math.min(zone.totalLength, dist));
+    const pts = zone.path;
+    const n = pts.length;
+
+    if (n === 0) return { x: 0, y: 0, angle: 0 };
+    if (n === 1) return { x: pts[0].x, y: pts[0].y, angle: pts[0].angle };
+
+    let low = 0;
+    let high = n - 1;
+
+    while (low <= high) {
+      const mid = (low + high) >> 1;
+
+      if (pts[mid].distance < clampedDist) {
+        low = mid + 1;
+      } else {
+        high = mid - 1;
+      }
+    }
+
+    const idx1 = Math.max(0, low - 1);
+    const idx2 = Math.min(n - 1, idx1 + 1);
+
+    if (idx1 === idx2) {
+      return { x: pts[idx1].x, y: pts[idx1].y, angle: pts[idx1].angle };
+    }
+
+    const p1 = pts[idx1];
+    const p2 = pts[idx2];
+    const segLen = p2.distance - p1.distance;
+    const t = segLen > 0.0001 ? Math.max(0, Math.min(1, (clampedDist - p1.distance) / segLen)) : 0;
+
+    let da = p2.angle - p1.angle;
+
+    while (da > Math.PI) da -= 2 * Math.PI;
+    while (da < -Math.PI) da += 2 * Math.PI;
+
+    return {
+      x: p1.x + (p2.x - p1.x) * t,
+      y: p1.y + (p2.y - p1.y) * t,
+      angle: p1.angle + da * t
+    };
+  }
+
   public sampleCrossoverPoint(
     zone: CrossoverZone,
     progress: number
   ): { x: number; y: number; angle: number } {
     const clampedProg = Math.max(0, Math.min(1, progress));
-    const idx = Math.min(
-      zone.path.length - 1,
-      Math.floor(clampedProg * (zone.path.length - 1))
-    );
-    const pt = zone.path[idx];
-
-    return { x: pt.x, y: pt.y, angle: pt.angle };
+    return this.getCrossoverPointAtDistance(zone, clampedProg * zone.totalLength);
   }
 
   public getPointAtDistance(trackId: number, s: number): { x: number; y: number; angle: number } {
-    const track = this.tracks[trackId] || this.tracks[0];
-    const isClosedLoop = track.isClosed;
-    const normS = isClosedLoop
-      ? ((s % track.totalLength) + track.totalLength) % track.totalLength
-      : Math.max(0, Math.min(track.totalLength, s));
-
-    for (const zone of this.crossoverZones) {
-      if (zone.fromTrackId === trackId) {
-        const sw = this.switches.find(x => x.id === zone.switchId);
-
-        if (sw && sw.state === 'diverging') {
-          if (normS >= zone.startDistance && normS <= zone.endDistance) {
-            const progress = (normS - zone.startDistance) / (zone.endDistance - zone.startDistance);
-            return this.sampleCrossoverPoint(zone, progress);
-          }
-        }
-      }
-    }
-
     return this.getStaticPointAtDistance(trackId, s);
   }
 
@@ -826,7 +878,7 @@ export class TrackNetwork {
   public sampleBézierCurve(
     p1: { x: number; y: number; angle: number },
     p2: { x: number; y: number; angle: number },
-    steps: number = 40
+    steps: number = 60
   ): { points: TrackPoint[]; totalLength: number } {
     const dist = Math.hypot(p2.x - p1.x, p2.y - p1.y);
     const handleLen = dist * 0.45;
@@ -836,10 +888,11 @@ export class TrackNetwork {
     const c2x = p2.x - Math.cos(p2.angle) * handleLen;
     const c2y = p2.y - Math.sin(p2.angle) * handleLen;
 
+    const fineSteps = Math.max(160, steps * 3);
     const raw: Point2D[] = [];
 
-    for (let i = 0; i <= steps; i++) {
-      const t = i / steps;
+    for (let i = 0; i <= fineSteps; i++) {
+      const t = i / fineSteps;
       const u = 1 - t;
       const tt = t * t;
       const uu = u * u;
@@ -852,35 +905,59 @@ export class TrackNetwork {
       raw.push({ x, y });
     }
 
+    let rawLen = 0;
+    const cumDists: number[] = [0];
+
+    for (let i = 0; i < raw.length - 1; i++) {
+      rawLen += Math.hypot(raw[i + 1].x - raw[i].x, raw[i + 1].y - raw[i].y);
+      cumDists.push(rawLen);
+    }
+
+    const numSamples = Math.max(25, Math.round(rawLen / 2));
     const pts: TrackPoint[] = [];
-    let currentDist = 0;
+    let rawIdx = 0;
 
-    for (let i = 0; i < raw.length; i++) {
-      let angle = 0;
+    for (let i = 0; i < numSamples; i++) {
+      const targetDist = (i / (numSamples - 1)) * rawLen;
 
-      if (i < raw.length - 1) {
-        angle = Math.atan2(raw[i + 1].y - raw[i].y, raw[i + 1].x - raw[i].x);
-      } else {
-        angle = Math.atan2(raw[i].y - raw[i - 1].y, raw[i].x - raw[i - 1].x);
+      while (rawIdx < raw.length - 2 && cumDists[rawIdx + 1] < targetDist) {
+        rawIdx++;
       }
 
-      if (i > 0) {
-        currentDist += Math.hypot(raw[i].x - raw[i - 1].x, raw[i].y - raw[i - 1].y);
-      }
+      const pA = raw[rawIdx];
+      const pB = raw[rawIdx + 1];
+      const dA = cumDists[rawIdx];
+      const dB = cumDists[rawIdx + 1];
+      const segSpan = dB - dA || 1;
+      const frac = Math.max(0, Math.min(1, (targetDist - dA) / segSpan));
 
-      const nx = -Math.sin(angle);
-      const ny = Math.cos(angle);
+      const x = pA.x + (pB.x - pA.x) * frac;
+      const y = pA.y + (pB.y - pA.y) * frac;
 
       pts.push({
-        x: raw[i].x,
-        y: raw[i].y,
-        angle,
-        distance: currentDist,
-        normalX: nx,
-        normalY: ny
+        x,
+        y,
+        angle: 0,
+        distance: targetDist,
+        normalX: 0,
+        normalY: 0
       });
     }
 
-    return { points: pts, totalLength: currentDist };
+    for (let i = 0; i < pts.length; i++) {
+      let angle = 0;
+
+      if (i < pts.length - 1) {
+        angle = Math.atan2(pts[i + 1].y - pts[i].y, pts[i + 1].x - pts[i].x);
+      } else {
+        angle = Math.atan2(pts[i].y - pts[i - 1].y, pts[i].x - pts[i - 1].x);
+      }
+
+      pts[i].angle = angle;
+      pts[i].normalX = -Math.sin(angle);
+      pts[i].normalY = Math.cos(angle);
+    }
+
+    return { points: pts, totalLength: rawLen };
   }
 }

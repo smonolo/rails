@@ -1,6 +1,17 @@
 import { TrackNetwork, type CrossoverZone } from './track.ts';
 import type { ReverserPosition, TrainType } from './types.ts';
 
+export interface ActiveCrossover {
+  zone: CrossoverZone;
+  fromTrackId: number;
+  toTrackId: number;
+  entryDist: number;
+  exitDist: number;
+  direction: 1 | -1;
+  reverseCurve: boolean;
+  progressDist: number;
+}
+
 export class Train {
   public trainType: TrainType = 'regional';
 
@@ -8,11 +19,20 @@ export class Train {
   public distance: number = 0;
   public speed: number = 0;
 
-  public activeTransition: {
-    zone: CrossoverZone;
-    distSinceExit: number;
-    direction: 1 | -1;
-  } | null = null;
+  public activeCrossovers: ActiveCrossover[] = [];
+
+  public get activeTransition(): { zone: CrossoverZone } | null {
+    if (this.activeCrossovers.length > 0) {
+      return { zone: this.activeCrossovers[this.activeCrossovers.length - 1].zone };
+    }
+    return null;
+  }
+
+  public set activeTransition(val: { zone: CrossoverZone } | null) {
+    if (val === null) {
+      this.activeCrossovers = [];
+    }
+  }
 
   public throttle: number = 0;
   public brake: number = 0;
@@ -193,7 +213,7 @@ export class Train {
       }
     }
 
-    this.activeTransition = null;
+    this.activeCrossovers = [];
     this.speed = 0;
     this.throttle = 0;
     this.targetThrottle = 0;
@@ -225,7 +245,7 @@ export class Train {
     this.brake = 0;
     this.targetBrake = 0;
     this.reverser = 1;
-    this.activeTransition = null;
+    this.activeCrossovers = [];
     this.currentLateralAcc = 0;
     this.currentLateralG = 0;
   }
@@ -335,39 +355,122 @@ export class Train {
 
     const prevDist = this.distance;
     const moveDist = this.speed * dt * this.facing;
-    this.distance += moveDist;
 
-    if (this.activeTransition) {
-      this.activeTransition.distSinceExit += moveDist;
-
-      if (this.activeTransition.distSinceExit >= this.totalTrainLength + 30) {
-        this.activeTransition = null;
-      } else if (this.activeTransition.distSinceExit < 0) {
-        this.trackId = this.activeTransition.zone.fromTrackId;
-        this.distance = this.activeTransition.zone.endDistance + this.activeTransition.distSinceExit;
-        this.activeTransition = null;
-      }
+    for (const cross of this.activeCrossovers) {
+      cross.progressDist += moveDist * cross.direction;
     }
 
-    for (const zone of trackNet.crossoverZones) {
-      if (zone.fromTrackId === this.trackId) {
+    this.activeCrossovers = this.activeCrossovers.filter(
+      c => c.progressDist < c.zone.totalLength + this.totalTrainLength + 40 && c.progressDist > -40
+    );
+
+    const newestCross = this.activeCrossovers.length > 0 ? this.activeCrossovers[this.activeCrossovers.length - 1] : null;
+    const locoTraversingSwitch = newestCross !== null && newestCross.progressDist < newestCross.zone.totalLength && newestCross.progressDist >= 0;
+
+    if (locoTraversingSwitch && newestCross) {
+      this.distance = newestCross.exitDist + (newestCross.progressDist - newestCross.zone.totalLength) * newestCross.direction;
+    } else {
+      this.distance += moveDist;
+
+      for (const zone of trackNet.crossoverZones) {
         const sw = trackNet.switches.find(s => s.id === zone.switchId);
 
-        if (sw && sw.state === 'diverging') {
-          if (moveDist > 0 && prevDist <= zone.endDistance && this.distance > zone.endDistance) {
-            const overflow = this.distance - zone.endDistance;
-            this.trackId = zone.toTrackId;
-            this.distance = zone.targetEndDistance + overflow;
-            this.activeTransition = { zone, distSinceExit: overflow, direction: 1 };
-            break;
-          } else if (moveDist < 0 && prevDist >= zone.startDistance && this.distance < zone.startDistance) {
-            const overflow = zone.startDistance - this.distance;
-            this.trackId = zone.toTrackId;
-            this.distance = zone.targetStartDistance - overflow;
-            this.activeTransition = { zone, distSinceExit: -overflow, direction: -1 };
-            break;
+        if (!sw || sw.state !== 'diverging') continue;
+
+        const isStandardFwd = zone.endDistance >= zone.startDistance;
+        const entries = [
+          {
+            trackId: zone.fromTrackId,
+            entryDist: zone.startDistance,
+            exitDist: zone.targetEndDistance,
+            toTrackId: zone.toTrackId,
+            direction: (isStandardFwd ? 1 : -1) as 1 | -1,
+            reverseCurve: false
+          },
+          {
+            trackId: zone.toTrackId,
+            entryDist: zone.targetEndDistance,
+            exitDist: zone.startDistance,
+            toTrackId: zone.fromTrackId,
+            direction: (isStandardFwd ? -1 : 1) as 1 | -1,
+            reverseCurve: true
+          }
+        ];
+
+        let triggered = false;
+
+        for (const entry of entries) {
+          if (this.trackId !== entry.trackId) continue;
+
+          const track = trackNet.tracks[this.trackId];
+          if (!track) continue;
+
+          const trackLen = track.totalLength;
+
+          if (entry.direction === 1 && moveDist > 0) {
+            let d0 = prevDist - entry.entryDist;
+            let d1 = this.distance - entry.entryDist;
+
+            if (track.isClosed) {
+              if (d0 > trackLen / 2) d0 -= trackLen;
+              if (d0 < -trackLen / 2) d0 += trackLen;
+              if (d1 > trackLen / 2) d1 -= trackLen;
+              if (d1 < -trackLen / 2) d1 += trackLen;
+            }
+
+            if (d0 <= 0 && d1 > 0 && d1 < 50) {
+              const overflow = d1;
+
+              this.activeCrossovers.push({
+                zone,
+                fromTrackId: entry.trackId,
+                toTrackId: entry.toTrackId,
+                entryDist: entry.entryDist,
+                exitDist: entry.exitDist,
+                direction: 1,
+                reverseCurve: entry.reverseCurve,
+                progressDist: overflow
+              });
+
+              this.trackId = entry.toTrackId;
+              this.distance = entry.exitDist + (overflow - zone.totalLength);
+              triggered = true;
+              break;
+            }
+          } else if (entry.direction === -1 && moveDist < 0) {
+            let d0 = entry.entryDist - prevDist;
+            let d1 = entry.entryDist - this.distance;
+
+            if (track.isClosed) {
+              if (d0 > trackLen / 2) d0 -= trackLen;
+              if (d0 < -trackLen / 2) d0 += trackLen;
+              if (d1 > trackLen / 2) d1 -= trackLen;
+              if (d1 < -trackLen / 2) d1 += trackLen;
+            }
+
+            if (d0 <= 0 && d1 > 0 && d1 < 50) {
+              const overflow = d1;
+
+              this.activeCrossovers.push({
+                zone,
+                fromTrackId: entry.trackId,
+                toTrackId: entry.toTrackId,
+                entryDist: entry.entryDist,
+                exitDist: entry.exitDist,
+                direction: -1,
+                reverseCurve: entry.reverseCurve,
+                progressDist: overflow
+              });
+
+              this.trackId = entry.toTrackId;
+              this.distance = entry.exitDist - (overflow - zone.totalLength);
+              triggered = true;
+              break;
+            }
           }
         }
+
+        if (triggered) break;
       }
     }
 
@@ -417,39 +520,59 @@ export class Train {
   }
 
   public getVehiclePosition(offset: number, trackNet: TrackNetwork): { x: number; y: number; angle: number } {
-    if (this.activeTransition) {
-      const zone = this.activeTransition.zone;
-      const effectiveOffset = this.facing === 1 ? offset : -offset;
-      const X = this.activeTransition.distSinceExit - effectiveOffset;
+    for (let i = this.activeCrossovers.length - 1; i >= 0; i--) {
+      const cross = this.activeCrossovers[i];
+      const d = cross.progressDist - offset;
 
-      if (X >= 0) {
-        const targetDist = zone.targetEndDistance + X;
-        const pt = trackNet.getPointAtDistance(zone.toTrackId, targetDist);
+      if (d >= cross.zone.totalLength) {
+        const toTrack = trackNet.tracks[cross.toTrackId];
+        let dist = cross.exitDist + (d - cross.zone.totalLength) * cross.direction;
+
+        if (toTrack && toTrack.isClosed) {
+          dist = ((dist % toTrack.totalLength) + toTrack.totalLength) % toTrack.totalLength;
+        }
+
+        const pt = trackNet.getStaticPointAtDistance(cross.toTrackId, dist);
+        const baseAngle = cross.direction === 1 ? pt.angle : pt.angle + Math.PI;
 
         return {
           x: pt.x,
           y: pt.y,
-          angle: this.facing === 1 ? pt.angle : pt.angle + Math.PI
+          angle: this.facing === 1 ? baseAngle : baseAngle + Math.PI
         };
-      } else if (X >= -zone.totalLength) {
-        const distOnCurve = zone.totalLength + X;
-        const progress = Math.max(0, Math.min(1, distOnCurve / zone.totalLength));
-        const pt = trackNet.sampleCrossoverPoint(zone, progress);
+      }
+
+      if (d >= 0) {
+        const curveDist = cross.reverseCurve ? cross.zone.totalLength - d : d;
+        const pt = trackNet.getCrossoverPointAtDistance(cross.zone, curveDist);
+        let baseAngle = pt.angle;
+
+        if (cross.reverseCurve) {
+          baseAngle += Math.PI;
+        }
 
         return {
           x: pt.x,
           y: pt.y,
-          angle: this.facing === 1 ? pt.angle : pt.angle + Math.PI
+          angle: this.facing === 1 ? baseAngle : baseAngle + Math.PI
         };
-      } else {
-        const distBeforeStart = -zone.totalLength - X;
-        const fromDist = zone.startDistance - distBeforeStart;
-        const pt = trackNet.getStaticPointAtDistance(zone.fromTrackId, fromDist);
+      }
+
+      if (i === 0) {
+        const fromTrack = trackNet.tracks[cross.fromTrackId];
+        let dist = cross.entryDist + d * cross.direction;
+
+        if (fromTrack && fromTrack.isClosed) {
+          dist = ((dist % fromTrack.totalLength) + fromTrack.totalLength) % fromTrack.totalLength;
+        }
+
+        const pt = trackNet.getStaticPointAtDistance(cross.fromTrackId, dist);
+        const baseAngle = cross.direction === 1 ? pt.angle : pt.angle + Math.PI;
 
         return {
           x: pt.x,
           y: pt.y,
-          angle: this.facing === 1 ? pt.angle : pt.angle + Math.PI
+          angle: this.facing === 1 ? baseAngle : baseAngle + Math.PI
         };
       }
     }
@@ -464,13 +587,30 @@ export class Train {
       carrDist = ((carrDist % totalLen) + totalLen) % totalLen;
     }
 
-    const pt = trackNet.getPointAtDistance(this.trackId, carrDist);
+    const pt = trackNet.getStaticPointAtDistance(this.trackId, carrDist);
+    const angle = this.facing === 1 ? pt.angle : pt.angle + Math.PI;
 
     return {
       x: pt.x,
       y: pt.y,
-      angle: this.facing === 1 ? pt.angle : pt.angle + Math.PI
+      angle
     };
+  }
+
+  public getAllVehiclePositions(trackNet: TrackNetwork): { x: number; y: number }[] {
+    const pts: { x: number; y: number }[] = [];
+    const step = 8;
+    const len = this.totalTrainLength;
+
+    for (let d = 0; d <= len; d += step) {
+      const pos = this.getVehiclePosition(d, trackNet);
+      pts.push({ x: pos.x, y: pos.y });
+    }
+
+    const tailPos = this.getVehiclePosition(len, trackNet);
+    pts.push({ x: tailPos.x, y: tailPos.y });
+
+    return pts;
   }
 
   public render(ctx: CanvasRenderingContext2D, trackNet: TrackNetwork): void {

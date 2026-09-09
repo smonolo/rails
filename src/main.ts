@@ -92,7 +92,7 @@ class Game {
     this.stationMgr = new StationManager(this.trackNet, this.seed);
     this.sceneryMgr = new SceneryManager(this.trackNet, this.stationMgr.stations, this.seed);
 
-    const spawnPt = this.trackNet.getPointAtDistance(this.train.trackId, this.train.distance);
+    const spawnPt = this.train.getVehiclePosition(0, this.trackNet);
     this.camera = new Camera(spawnPt.x, spawnPt.y);
     this.camera.setWorldBounds(this.trackNet.worldBounds);
 
@@ -147,7 +147,7 @@ class Game {
     this.train = new Train(this.trackNet);
     this.hud.resetForWorld(this.train, this.stationMgr, this.signalMgr, this.trackNet);
 
-    const spawnPt = this.trackNet.getPointAtDistance(this.train.trackId, this.train.distance);
+    const spawnPt = this.train.getVehiclePosition(0, this.trackNet);
     this.camera.resetToTrain(spawnPt.x, spawnPt.y);
 
     await new Promise((resolve) => setTimeout(resolve, 140));
@@ -288,7 +288,16 @@ class Game {
     const clickedSwitch = this.trackNet.findSwitchAt(worldX, worldY, radius);
 
     if (clickedSwitch) {
-      if (this.trackNet.isSwitchOccupied(clickedSwitch.id, this.train.trackId, this.train.headDistance, this.train.tailDistance, this.train.activeTransition?.zone.switchId)) {
+      const isSwitchTraversing = this.train.activeCrossovers.some(c => c.zone.switchId === clickedSwitch.id);
+
+      if (isSwitchTraversing || this.trackNet.isSwitchOccupied(
+        clickedSwitch.id,
+        this.train.trackId,
+        this.train.headDistance,
+        this.train.tailDistance,
+        this.train.activeTransition?.zone.switchId,
+        this.train.getAllVehiclePositions(this.trackNet)
+      )) {
         this.hud.triggerAlert({
           type: 'info',
           title: clickedSwitch.name,
@@ -387,7 +396,7 @@ class Game {
       this.trackNet
     );
 
-    const trainPt = this.trackNet.getPointAtDistance(this.train.trackId, this.train.distance);
+    const trainPt = this.train.getVehiclePosition(0, this.trackNet);
 
     this.camera.follow(trainPt.x, trainPt.y);
     this.camera.update(dt);

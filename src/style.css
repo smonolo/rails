@@ -217,8 +217,10 @@ html, body {
   transition: background-color 0.2s ease;
 }
 
-.dropdown-wrapper {
-  position: relative;
+.top-actions-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   pointer-events: auto;
 }
 
@@ -236,88 +238,19 @@ html, body {
   border-color: rgba(255, 255, 255, 0.3);
 }
 
-.btn-hamburger {
+.top-action-btn {
   width: 36px;
   height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 0;
 }
 
-.hamburger-icon {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  width: 15px;
-  height: 11px;
-}
-
-.hamburger-icon span {
+.top-btn-icon {
+  width: 18px;
+  height: 18px;
   display: block;
-  width: 100%;
-  height: 1.5px;
-  background-color: var(--color-sm-white);
-  border-radius: 1px;
-}
-
-.dropdown-menu {
-  position: absolute;
-  top: calc(100% + 8px);
-  right: 0;
-  width: 190px;
-  background: var(--color-surface-card);
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  padding: 6px;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  z-index: 100;
-}
-
-.dropdown-item {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 10px;
-  border-radius: 6px;
-  border: none;
-  background: transparent;
-  color: var(--color-sm-white);
-  font-family: var(--font-body);
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  text-align: left;
-  transition: background-color 0.15s ease;
-}
-
-.dropdown-item:hover {
-  background: rgba(255, 255, 255, 0.08);
-}
-
-.dropdown-item .item-icon {
-  font-size: 13px;
-  width: 16px;
-  color: var(--color-neutral-400);
-}
-
-.dropdown-item .item-shortcut {
-  margin-left: auto;
-  font-family: var(--font-mono);
-  font-size: 10px;
-  color: var(--color-neutral-500);
-  background: rgba(255, 255, 255, 0.06);
-  padding: 2px 6px;
-  border-radius: 4px;
-  border: 1px solid var(--color-border-subtle);
-}
-
-.dropdown-divider {
-  height: 1px;
-  background: var(--color-border-subtle);
-  margin: 4px 0;
 }
 
 #warning-banner {

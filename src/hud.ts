@@ -28,7 +28,6 @@ export class HUD {
   private brakeHandleEl!: HTMLElement;
   private brakeValEl!: HTMLElement;
 
-  private dropdownMenuEl!: HTMLElement;
   private controlsModalEl!: HTMLElement;
 
   private warningBannerEl!: HTMLElement;
@@ -86,8 +85,6 @@ export class HUD {
     this.brakeFillEl = document.getElementById('brake-bar-fill')!;
     this.brakeHandleEl = document.getElementById('brake-handle')!;
     this.brakeValEl = document.getElementById('brake-val')!;
-
-    this.dropdownMenuEl = document.getElementById('dropdown-menu')!;
     this.controlsModalEl = document.getElementById('controls-modal')!;
 
     this.warningBannerEl = document.getElementById('warning-banner')!;
@@ -113,34 +110,17 @@ export class HUD {
   }
 
   private setupEventListeners(): void {
-    const toggleBtn = document.getElementById('btn-dropdown-toggle')!;
-
-    toggleBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      this.dropdownMenuEl.classList.toggle('hidden');
-    });
-
-    document.addEventListener('click', () => {
-      this.dropdownMenuEl.classList.add('hidden');
-    });
-
-    this.dropdownMenuEl.addEventListener('click', (e) => {
-      e.stopPropagation();
-    });
-
-    document.getElementById('btn-menu-center')?.addEventListener('click', () => {
-      const pt = this.trackNet.getPointAtDistance(this.train.trackId, this.train.distance);
+    document.getElementById('btn-top-center')?.addEventListener('click', () => {
+      const pt = this.train.getVehiclePosition(0, this.trackNet);
       this.camera.resetToTrain(pt.x, pt.y);
-      this.dropdownMenuEl.classList.add('hidden');
+    });
+
+    document.getElementById('btn-top-controls')?.addEventListener('click', () => {
+      this.openControlsModal();
     });
 
     document.getElementById('btn-respawn-train')?.addEventListener('click', () => {
       this.respawnTrain();
-    });
-
-    document.getElementById('btn-menu-controls')?.addEventListener('click', () => {
-      this.openControlsModal();
-      this.dropdownMenuEl.classList.add('hidden');
     });
 
     this.btnToggleTrainConfigEl?.addEventListener('click', (e) => {
@@ -342,7 +322,6 @@ export class HUD {
         this.closeControlsModal();
         this.trainConfigCardEl.classList.add('hidden');
         this.worldConfigCardEl.classList.add('hidden');
-        this.dropdownMenuEl.classList.add('hidden');
         return;
       }
 
@@ -353,13 +332,12 @@ export class HUD {
       }
 
       if (e.code === 'KeyC') {
-        const pt = this.trackNet.getPointAtDistance(this.train.trackId, this.train.distance);
+        const pt = this.train.getVehiclePosition(0, this.trackNet);
         this.camera.resetToTrain(pt.x, pt.y);
       }
 
       if (e.code === 'KeyG') {
         this.worldConfigCardEl.classList.add('hidden');
-        this.dropdownMenuEl.classList.add('hidden');
         this.onRegenerateShape?.(this.selectedShape, this.selectedSize);
       }
 
@@ -469,14 +447,13 @@ export class HUD {
   public respawnTrain(): void {
     this.train.spawnRandom(this.trackNet);
 
-    const pt = this.trackNet.getStaticPointAtDistance(this.train.trackId, this.train.distance);
+    const pt = this.train.getVehiclePosition(0, this.trackNet);
     this.camera.resetToTrain(pt.x, pt.y);
 
     this.clearAlert();
     this.updateLeverHandles();
     this.updateConsistDisplay();
     this.setReverser(1);
-    this.dropdownMenuEl.classList.add('hidden');
   }
 
   public resetForWorld(train: Train, stationMgr: StationManager, signalMgr: SignalManager, trackNet: TrackNetwork): void {
@@ -497,14 +474,13 @@ export class HUD {
     if (trackNet.size === 'M') document.getElementById('btn-size-m')?.classList.add('active');
     if (trackNet.size === 'L') document.getElementById('btn-size-l')?.classList.add('active');
 
-    const pt = this.trackNet.getStaticPointAtDistance(this.train.trackId, this.train.distance);
+    const pt = this.train.getVehiclePosition(0, this.trackNet);
     this.camera.resetToTrain(pt.x, pt.y);
 
     this.clearAlert();
     this.updateLeverHandles();
     this.updateConsistDisplay();
     this.setReverser(1);
-    this.dropdownMenuEl.classList.add('hidden');
     this.worldConfigCardEl?.classList.add('hidden');
   }
 
