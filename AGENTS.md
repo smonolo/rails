@@ -9,6 +9,7 @@ Developer and AI agent guidelines for working on the `rails` repository.
 `Rails` is a high-performance, minimalist 2D railway simulator built on pure TypeScript and the HTML5 Canvas API without external physics engines or heavy frontend frameworks.
 
 ### Architecture & Modules
+
 - **`src/main.ts`**: Game loop entry point (`requestAnimationFrame`), input aggregation, camera viewport orchestration, high-level event handling.
 - **`src/core/` (Simulation & Domain)**:
   - **`track.ts`**: Catmull-Rom spline curves, arc-length distance parameterization, junction switches, crossover transition zones, switch occupancy interlocking.
@@ -32,15 +33,18 @@ Developer and AI agent guidelines for working on the `rails` repository.
 When modifying or generating code in this repository, you must adhere to the following rules:
 
 ### A. No Comments in Code
+
 - **Never add comments** (`//` or `/* */`) to code files (`.ts`, `.js`, `.css`, `.html`).
 - Code must be self-documenting through clear, descriptive variable and method names.
 - Existing comments must not be introduced or re-added.
 
 ### B. Code Formatting
+
 - Keep blank lines between declarations, blocks, interfaces, and methods.
 - Maintain consistent indentation (2 spaces).
 
 ### C. Build Verification
+
 - **NEVER run `npm run build` or `vite build`** during agent sessions.
 - Run `npx tsc --noEmit` to verify type safety and compilation.
 
@@ -49,6 +53,7 @@ When modifying or generating code in this repository, you must adhere to the fol
 ## 3. Domain Logic & Invariants
 
 ### A. Railway Signaling
+
 1. **Signal Pairs**:
    - Every primary signal (`PrimarySignal` - `P`) must have a corresponding secondary distant signal (`DistantSignal` - `D`).
    - The distant signal is positioned at braking distance (~800 m) ahead of the primary signal in the direction of travel.
@@ -70,12 +75,14 @@ When modifying or generating code in this repository, you must adhere to the fol
    - Junction track segments render in uniform rail gray (`#4a4a54`, width 7).
 
 ### B. Track & Junction Switch Interlocking
+
 1. **Switch States**:
    - Switches operate in either `straight` or `diverging` routes.
 2. **Interlocking Rule**:
    - A switch cannot be toggled if a train is currently traversing the switch points, frog, or active crossover transition zone (`isSwitchOccupied`).
 
 ### C. Physics & Units
+
 1. **Coordinate & Scale Conventions**:
    - World coordinates are in pixels, with 1 canvas pixel approximately equal to 1 meter of track.
    - Speed is tracked in internal simulation units and scaled for real-world km/h readouts.
@@ -89,6 +96,7 @@ When modifying or generating code in this repository, you must adhere to the fol
 ## 4. Verification Workflow
 
 Before concluding any code changes:
+
 1. Run `npx tsc --noEmit` from the repository root. Ensure 0 errors.
 2. Check `git diff` to ensure no comments were added to any source files.
 3. Ensure no trailing unused imports or variables exist.
@@ -98,5 +106,6 @@ Before concluding any code changes:
 ## 5. Future Roadmap & Architecture
 
 Consult `PLAN.md` for architectural blueprints, technical specifications, and phase breakdowns regarding:
+
 - Seed-based procedural terrain, track geometry, and signaling generation.
 - Real-time authoritative multiplayer, 1D track coordinate replication, and rolling stock shunting/coupling.

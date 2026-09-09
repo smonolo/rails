@@ -2,18 +2,24 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
     <title>Rails</title>
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
     <link rel="stylesheet" href="/src/style.css" />
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-T5PKK761PE"></script>
+    <script
+      async
+      src="https://www.googletagmanager.com/gtag/js?id=G-T5PKK761PE"
+    ></script>
     <script>
-      window.dataLayer = window.dataLayer || [];
+      window.dataLayer = window.dataLayer || []
       function gtag() {
-        dataLayer.push(arguments);
+        dataLayer.push(arguments)
       }
-      gtag('js', new Date());
-      gtag('config', 'G-T5PKK761PE');
+      gtag('js', new Date())
+      gtag('config', 'G-T5PKK761PE')
     </script>
   </head>
   <body>
@@ -23,15 +29,30 @@
 
     <div id="warning-banner" class="hidden">
       <div class="warning-badge" id="warning-badge">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+        <svg
+          width="13"
+          height="13"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path
+            d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
+          />
           <line x1="12" y1="9" x2="12" y2="13" />
           <line x1="12" y1="17" x2="12.01" y2="17" />
         </svg>
       </div>
       <div class="warning-body">
-        <div class="warning-title" id="warning-title">Signal passed at danger</div>
-        <div class="warning-desc" id="warning-desc">Emergency brake enforcement active.</div>
+        <div class="warning-title" id="warning-title">
+          Signal passed at danger
+        </div>
+        <div class="warning-desc" id="warning-desc">
+          Emergency brake enforcement active.
+        </div>
       </div>
       <button class="warning-btn hidden" id="warning-reset-btn">Reset</button>
     </div>
@@ -44,7 +65,10 @@
             <span id="hud-signal-info">Signals active</span>
           </div>
           <div class="track-status-sep"></div>
-          <div class="track-status-item station-status-box" id="hud-station-info">
+          <div
+            class="track-status-item station-status-box"
+            id="hud-station-info"
+          >
             <span class="status-primary">Calculating next station...</span>
           </div>
           <div class="track-status-sep"></div>
@@ -55,8 +79,23 @@
         </div>
 
         <div class="top-actions-group">
-          <button class="hud-btn top-action-btn" id="btn-top-center" title="Center camera (C)" aria-label="Center camera">
-            <svg class="top-btn-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <button
+            class="hud-btn top-action-btn"
+            id="btn-top-center"
+            title="Center camera (C)"
+            aria-label="Center camera"
+          >
+            <svg
+              class="top-btn-icon"
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
               <circle cx="12" cy="12" r="7" />
               <line x1="12" y1="1" x2="12" y2="5" />
               <line x1="12" y1="19" x2="12" y2="23" />
@@ -65,8 +104,23 @@
               <circle cx="12" cy="12" r="2" fill="currentColor" />
             </svg>
           </button>
-          <button class="hud-btn top-action-btn" id="btn-top-controls" title="Controls & help (H)" aria-label="Controls and help">
-            <svg class="top-btn-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <button
+            class="hud-btn top-action-btn"
+            id="btn-top-controls"
+            title="Controls & help (H)"
+            aria-label="Controls and help"
+          >
+            <svg
+              class="top-btn-icon"
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
               <circle cx="12" cy="12" r="9" />
               <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
               <line x1="12" y1="17" x2="12.01" y2="17" />
@@ -77,80 +131,194 @@
 
       <div class="hud-bottom-row">
         <div class="bottom-left-stack">
-          <div class="hud-floating-card train-config-card hidden" id="train-config-card">
+          <div
+            class="hud-floating-card train-config-card hidden"
+            id="train-config-card"
+          >
             <div class="card-header">
               <span class="card-title">Train Configuration</span>
-              <button class="modal-close-btn" id="btn-close-train-config" title="Close" aria-label="Close">✕</button>
+              <button
+                class="modal-close-btn"
+                id="btn-close-train-config"
+                title="Close"
+                aria-label="Close"
+              >
+                ✕
+              </button>
             </div>
             <div class="type-selector-group">
-              <button class="type-btn active" id="btn-type-regional" data-type="regional">Regional</button>
-              <button class="type-btn" id="btn-type-cargo" data-type="cargo">Cargo</button>
-              <button class="type-btn" id="btn-type-highspeed" data-type="high_speed">High-Speed</button>
+              <button
+                class="type-btn active"
+                id="btn-type-regional"
+                data-type="regional"
+              >
+                Regional
+              </button>
+              <button class="type-btn" id="btn-type-cargo" data-type="cargo">
+                Cargo
+              </button>
+              <button
+                class="type-btn"
+                id="btn-type-highspeed"
+                data-type="high_speed"
+              >
+                High-Speed
+              </button>
             </div>
             <div class="consist-row">
               <span class="consist-label">Carriages</span>
               <div class="consist-stepper">
-                <button class="consist-btn" id="btn-carr-minus" title="Remove carriage">-</button>
+                <button
+                  class="consist-btn"
+                  id="btn-carr-minus"
+                  title="Remove carriage"
+                >
+                  -
+                </button>
                 <span class="consist-val" id="carr-count-val">3</span>
-                <button class="consist-btn" id="btn-carr-plus" title="Add carriage">+</button>
+                <button
+                  class="consist-btn"
+                  id="btn-carr-plus"
+                  title="Add carriage"
+                >
+                  +
+                </button>
               </div>
               <span class="consist-weight" id="consist-weight-val">228 t</span>
             </div>
             <div class="train-config-actions">
-              <button class="train-action-btn" id="btn-invert-train" title="Invert train orientation">Invert train</button>
-              <button class="train-action-btn" id="btn-respawn-train" title="Respawn train at initial position">Respawn train</button>
+              <button
+                class="train-action-btn"
+                id="btn-invert-train"
+                title="Invert train orientation"
+              >
+                Invert train
+              </button>
+              <button
+                class="train-action-btn"
+                id="btn-respawn-train"
+                title="Respawn train at initial position"
+              >
+                Respawn train
+              </button>
             </div>
           </div>
 
-          <div class="hud-floating-card world-config-card hidden" id="world-config-card">
+          <div
+            class="hud-floating-card world-config-card hidden"
+            id="world-config-card"
+          >
             <div class="card-header">
               <span class="card-title">World Configuration</span>
-              <button class="modal-close-btn" id="btn-close-world-config" title="Close" aria-label="Close">✕</button>
+              <button
+                class="modal-close-btn"
+                id="btn-close-world-config"
+                title="Close"
+                aria-label="Close"
+              >
+                ✕
+              </button>
             </div>
             <div class="config-section-label">Shape</div>
             <div class="shape-selector-group">
-              <button class="shape-btn" id="btn-shape-i" data-shape="I">Straight</button>
-              <button class="shape-btn" id="btn-shape-s" data-shape="S">Curves</button>
-              <button class="shape-btn active" id="btn-shape-o" data-shape="O">Circle</button>
+              <button class="shape-btn" id="btn-shape-i" data-shape="I">
+                Straight
+              </button>
+              <button class="shape-btn" id="btn-shape-s" data-shape="S">
+                Curves
+              </button>
+              <button class="shape-btn active" id="btn-shape-o" data-shape="O">
+                Circle
+              </button>
             </div>
             <div class="config-section-label">Size</div>
             <div class="size-selector-group">
               <button class="size-btn" id="btn-size-s" data-size="S">S</button>
-              <button class="size-btn active" id="btn-size-m" data-size="M">M</button>
+              <button class="size-btn active" id="btn-size-m" data-size="M">
+                M
+              </button>
               <button class="size-btn" id="btn-size-l" data-size="L">L</button>
-              <button class="size-btn" id="btn-size-xl" data-size="XL">XL</button>
+              <button class="size-btn" id="btn-size-xl" data-size="XL">
+                XL
+              </button>
             </div>
-            <button class="world-regen-btn" id="btn-world-regenerate" title="Regenerate world">Regenerate world</button>
+            <button
+              class="world-regen-btn"
+              id="btn-world-regenerate"
+              title="Regenerate world"
+            >
+              Regenerate world
+            </button>
           </div>
 
-          <div class="hud-floating-card advanced-config-card hidden" id="advanced-config-card">
+          <div
+            class="hud-floating-card advanced-config-card hidden"
+            id="advanced-config-card"
+          >
             <div class="card-header">
               <span class="card-title">Advanced Systems</span>
-              <button class="modal-close-btn" id="btn-close-advanced-config" title="Close" aria-label="Close">✕</button>
+              <button
+                class="modal-close-btn"
+                id="btn-close-advanced-config"
+                title="Close"
+                aria-label="Close"
+              >
+                ✕
+              </button>
             </div>
             <div class="config-toggle-row">
               <div class="toggle-text-group">
                 <span class="toggle-main-label">Advanced Controls</span>
                 <span class="toggle-sub-label">Master system activation</span>
               </div>
-              <button class="sys-toggle-btn" id="btn-toggle-advanced" title="Toggle advanced controls">OFF</button>
+              <button
+                class="sys-toggle-btn"
+                id="btn-toggle-advanced"
+                title="Toggle advanced controls"
+              >
+                OFF
+              </button>
             </div>
             <div class="config-divider"></div>
             <div class="config-toggle-row" id="row-deadman">
               <div class="toggle-text-group">
                 <span class="toggle-main-label">Deadman Control</span>
-                <span class="toggle-sub-label">Vigilance safety monitoring</span>
+                <span class="toggle-sub-label"
+                  >Vigilance safety monitoring</span
+                >
               </div>
-              <button class="sys-toggle-btn active" id="btn-toggle-deadman" title="Toggle deadman control">ON</button>
+              <button
+                class="sys-toggle-btn active"
+                id="btn-toggle-deadman"
+                title="Toggle deadman control"
+              >
+                ON
+              </button>
             </div>
             <div class="deadman-info-box">
-              <span>Press <span class="key-badge">Q</span> or click the cab pedal every 30s while driving to confirm alertness.</span>
+              <span
+                >Press <span class="key-badge">Q</span> or click the cab pedal
+                every 30s while driving to confirm alertness.</span
+              >
             </div>
           </div>
 
           <div class="bottom-left-buttons">
-            <button class="hud-pill-btn" id="btn-toggle-train-config" title="Train configuration (T)">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <button
+              class="hud-pill-btn"
+              id="btn-toggle-train-config"
+              title="Train configuration (T)"
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
                 <rect x="4" y="3" width="16" height="16" rx="2" />
                 <path d="M4 11h16" />
                 <path d="M12 3v8" />
@@ -159,17 +327,47 @@
               </svg>
               <span>Train</span>
             </button>
-            <button class="hud-pill-btn" id="btn-toggle-world-config" title="World configuration">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <button
+              class="hud-pill-btn"
+              id="btn-toggle-world-config"
+              title="World configuration"
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
                 <circle cx="12" cy="12" r="10" />
                 <line x1="2" y1="12" x2="22" y2="12" />
-                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                <path
+                  d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"
+                />
               </svg>
               <span>World</span>
             </button>
-            <button class="hud-pill-btn" id="btn-toggle-advanced-config" title="Advanced systems (U)">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+            <button
+              class="hud-pill-btn"
+              id="btn-toggle-advanced-config"
+              title="Advanced systems (U)"
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path
+                  d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"
+                />
               </svg>
               <span>Advanced</span>
             </button>
@@ -184,18 +382,58 @@
             </div>
             <div class="speed-box">
               <span class="speed-num" id="hud-speed-num">0</span>
-              <div class="hud-active-sign" id="hud-active-sign" title="Active speed limit sign">
-                <svg class="hud-sign-svg" width="38" height="34" viewBox="0 0 38 34">
-                  <rect x="2" y="2" width="34" height="30" rx="4" fill="#ffffff" stroke="#18181b" stroke-width="2.5" />
-                  <text x="19" y="23" font-family="'Geist Mono', monospace" font-size="18" font-weight="900" fill="#18181b" text-anchor="middle">12</text>
+              <div
+                class="hud-active-sign"
+                id="hud-active-sign"
+                title="Active speed limit sign"
+              >
+                <svg
+                  class="hud-sign-svg"
+                  width="38"
+                  height="34"
+                  viewBox="0 0 38 34"
+                >
+                  <rect
+                    x="2"
+                    y="2"
+                    width="34"
+                    height="30"
+                    rx="4"
+                    fill="#ffffff"
+                    stroke="#18181b"
+                    stroke-width="2.5"
+                  />
+                  <text
+                    x="19"
+                    y="23"
+                    font-family="'Geist Mono', monospace"
+                    font-size="18"
+                    font-weight="900"
+                    fill="#18181b"
+                    text-anchor="middle"
+                  >
+                    12
+                  </text>
                 </svg>
               </div>
             </div>
             <div class="telemetry-actions">
-              <button class="btn-deadman hidden" id="btn-deadman" title="Deadman vigilance pedal (Q) - click or press Q to acknowledge">
-                <span class="deadman-lamp-text" id="deadman-lamp-text">DEADMAN</span>
+              <button
+                class="btn-deadman hidden"
+                id="btn-deadman"
+                title="Deadman vigilance pedal (Q) - click or press Q to acknowledge"
+              >
+                <span class="deadman-lamp-text" id="deadman-lamp-text"
+                  >DEADMAN</span
+                >
               </button>
-              <button class="btn-eb" id="btn-eb" title="Trip emergency brake (X)">EMERGENCY BRAKE</button>
+              <button
+                class="btn-eb"
+                id="btn-eb"
+                title="Trip emergency brake (X)"
+              >
+                EMERGENCY BRAKE
+              </button>
             </div>
           </div>
 
@@ -205,14 +443,46 @@
                 <div class="lever-header">
                   <span class="lever-label">DIR</span>
                 </div>
-                <div class="lever-track-wrapper reverser-track-wrapper" id="reverser-track">
+                <div
+                  class="lever-track-wrapper reverser-track-wrapper"
+                  id="reverser-track"
+                >
                   <div class="reverser-notches">
-                    <button class="rev-notch active" id="btn-fwd" title="Forward (F)" data-pos="1">F</button>
-                    <button class="rev-notch" id="btn-neu" title="Neutral (N)" data-pos="0">N</button>
-                    <button class="rev-notch" id="btn-rev" title="Reverse (R)" data-pos="-1">R</button>
+                    <button
+                      class="rev-notch active"
+                      id="btn-fwd"
+                      title="Forward (F)"
+                      data-pos="1"
+                    >
+                      F
+                    </button>
+                    <button
+                      class="rev-notch"
+                      id="btn-neu"
+                      title="Neutral (N)"
+                      data-pos="0"
+                    >
+                      N
+                    </button>
+                    <button
+                      class="rev-notch"
+                      id="btn-rev"
+                      title="Reverse (R)"
+                      data-pos="-1"
+                    >
+                      R
+                    </button>
                   </div>
-                  <div class="lever-fill reverser-fill" id="reverser-bar-fill" style="bottom: 50%; height: 50%; border-radius: 7px 7px 0 0;"></div>
-                  <div class="lever-handle reverser-handle" id="reverser-handle" style="bottom: 100%;"></div>
+                  <div
+                    class="lever-fill reverser-fill"
+                    id="reverser-bar-fill"
+                    style="bottom: 50%; height: 50%; border-radius: 7px 7px 0 0"
+                  ></div>
+                  <div
+                    class="lever-handle reverser-handle"
+                    id="reverser-handle"
+                    style="bottom: 100%"
+                  ></div>
                 </div>
               </div>
 
@@ -221,7 +491,10 @@
                   <span class="lever-label">PWR</span>
                 </div>
                 <div class="lever-track-wrapper" id="throttle-track">
-                  <div class="lever-fill throttle-fill" id="throttle-bar-fill"></div>
+                  <div
+                    class="lever-fill throttle-fill"
+                    id="throttle-bar-fill"
+                  ></div>
                   <div class="lever-handle" id="throttle-handle"></div>
                 </div>
               </div>
@@ -253,13 +526,19 @@
             <div class="control-row">
               <span class="control-desc">Throttle (+1% / -1%)</span>
               <div class="control-keys">
-                <span class="key-badge">W</span>/<span class="key-badge">S</span> or <span class="key-badge">↑</span>/<span class="key-badge">↓</span>
+                <span class="key-badge">W</span>/<span class="key-badge"
+                  >S</span
+                >
+                or <span class="key-badge">↑</span>/<span class="key-badge"
+                  >↓</span
+                >
               </div>
             </div>
             <div class="control-row">
               <span class="control-desc">Brake (+1% / -1%)</span>
               <div class="control-keys">
-                <span class="key-badge">Space</span> / <span class="key-badge">V</span>
+                <span class="key-badge">Space</span> /
+                <span class="key-badge">V</span>
               </div>
             </div>
             <div class="control-row">
@@ -267,7 +546,9 @@
               <div class="control-keys"><span class="key-badge">X</span></div>
             </div>
             <div class="control-row">
-              <span class="control-desc">Reverser (Forward / Neutral / Reverse)</span>
+              <span class="control-desc"
+                >Reverser (Forward / Neutral / Reverse)</span
+              >
               <div class="control-keys">
                 <span class="key-badge">F</span>
                 <span class="key-badge">N</span>
@@ -286,11 +567,17 @@
               <div class="control-keys"><span class="key-badge">C</span></div>
             </div>
             <div class="control-row">
-              <span class="control-desc">Interactive signals & track switches</span>
-              <div class="control-keys"><span class="key-badge">Click on map</span></div>
+              <span class="control-desc"
+                >Interactive signals & track switches</span
+              >
+              <div class="control-keys">
+                <span class="key-badge">Click on map</span>
+              </div>
             </div>
             <div class="control-row">
-              <span class="control-desc">Deadman vigilance pedal (acknowledge)</span>
+              <span class="control-desc"
+                >Deadman vigilance pedal (acknowledge)</span
+              >
               <div class="control-keys"><span class="key-badge">Q</span></div>
             </div>
             <div class="control-row">
@@ -308,8 +595,24 @@
           </div>
 
           <div class="modal-notes">
-            <p><strong>Signalling:</strong> Primary signals (<span class="key-badge">P</span>) protect occupied block sections with Stop and Clear aspects. Distant signals (<span class="key-badge">D</span>) preview the upcoming Primary signal (Expect Stop or Expect Clear). Passing a Stop signal trips automatic emergency brake enforcement. Click any signal or junction switch to command routes.</p>
-            <p><strong>Advanced Systems:</strong> Deadman vigilance control system. When active, you must confirm alertness by pressing <span class="key-badge">Q</span> or clicking the cab pedal at least once every 30 seconds while driving. If unacknowledged, a visual alert triggers at 30s, followed by an urgent alarm at 32.5s and emergency braking enforcement at 35s.</p>
+            <p>
+              <strong>Signalling:</strong> Primary signals (<span
+                class="key-badge"
+                >P</span
+              >) protect occupied block sections with Stop and Clear aspects.
+              Distant signals (<span class="key-badge">D</span>) preview the
+              upcoming Primary signal (Expect Stop or Expect Clear). Passing a
+              Stop signal trips automatic emergency brake enforcement. Click any
+              signal or junction switch to command routes.
+            </p>
+            <p>
+              <strong>Advanced Systems:</strong> Deadman vigilance control
+              system. When active, you must confirm alertness by pressing
+              <span class="key-badge">Q</span> or clicking the cab pedal at
+              least once every 30 seconds while driving. If unacknowledged, a
+              visual alert triggers at 30s, followed by an urgent alarm at 32.5s
+              and emergency braking enforcement at 35s.
+            </p>
           </div>
         </div>
       </div>
@@ -319,7 +622,9 @@
       <div class="loading-card">
         <div class="loading-spinner"></div>
         <div class="loading-title">Generating World</div>
-        <div class="loading-subtitle" id="loading-seed-info">Synthesizing procedural layout...</div>
+        <div class="loading-subtitle" id="loading-seed-info">
+          Synthesizing procedural layout...
+        </div>
       </div>
     </div>
 

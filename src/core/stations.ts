@@ -1,40 +1,52 @@
-import type { Station } from '../types.ts';
-import { TrackNetwork } from './track.ts';
-import { PRNG } from '../utils/prng.ts';
-import { wrap } from '../utils/math.ts';
+import type { Station } from '../types.ts'
+import { TrackNetwork } from './track.ts'
+import { PRNG } from '../utils/prng.ts'
+import { wrap } from '../utils/math.ts'
 
 export interface StationStatus {
-  currentStation: Station | null;
+  currentStation: Station | null
 }
 
 export class StationManager {
-  public stations: Station[] = [];
+  public stations: Station[] = []
 
   constructor(trackNet: TrackNetwork, seed: number | string = 12345) {
-    this.generateStations(trackNet, seed);
+    this.generateStations(trackNet, seed)
   }
 
   public generateStations(trackNet: TrackNetwork, seed: number | string): void {
-    this.stations = [];
-    const prng = new PRNG(seed);
+    this.stations = []
+    const prng = new PRNG(seed)
 
     const namePrefixes = [
-      'Highland', 'Riverdale', 'Westport', 'Oakridge', 'Fairview',
-      'Silverton', 'Grandview', 'Lakewood', 'Kingsbury', 'Beacon Hill',
-      'Cedar Valley', 'Maplewood', 'Pinecrest', 'Meadowbrook', 'Rockland'
-    ];
+      'Highland',
+      'Riverdale',
+      'Westport',
+      'Oakridge',
+      'Fairview',
+      'Silverton',
+      'Grandview',
+      'Lakewood',
+      'Kingsbury',
+      'Beacon Hill',
+      'Cedar Valley',
+      'Maplewood',
+      'Pinecrest',
+      'Meadowbrook',
+      'Rockland',
+    ]
 
-    const shuffled = [...namePrefixes].sort(() => prng.next() - 0.5);
-    const track0 = trackNet.tracks[0];
-    const track1 = trackNet.tracks[1];
+    const shuffled = [...namePrefixes].sort(() => prng.next() - 0.5)
+    const track0 = trackNet.tracks[0]
+    const track1 = trackNet.tracks[1]
 
-    if (!track0 || !track1) return;
+    if (!track0 || !track1) return
 
     if (!track0.isClosed) {
-      const len0 = track0.totalLength;
-      const len1 = track1.totalLength;
+      const len0 = track0.totalLength
+      const len1 = track1.totalLength
 
-      const margin = Math.min(1000, Math.round(len0 * 0.16));
+      const margin = Math.min(1000, Math.round(len0 * 0.16))
 
       const stationConfigs = [
         {
@@ -42,26 +54,26 @@ export class StationManager {
           code: shuffled[0].substring(0, 3).toUpperCase(),
           dist0: margin,
           dist1: margin,
-          isTerminal: true
+          isTerminal: true,
         },
         {
           name: `${shuffled[1]} Central`,
           code: shuffled[1].substring(0, 3).toUpperCase(),
           dist0: Math.round(len0 * 0.5),
           dist1: Math.round(len1 * 0.5),
-          isTerminal: false
+          isTerminal: false,
         },
         {
           name: `${shuffled[2]} East Terminus`,
           code: shuffled[2].substring(0, 3).toUpperCase(),
           dist0: Math.round(len0 - margin),
           dist1: Math.round(len1 - margin),
-          isTerminal: true
-        }
-      ];
+          isTerminal: true,
+        },
+      ]
 
       for (let i = 0; i < stationConfigs.length; i++) {
-        const sc = stationConfigs[i];
+        const sc = stationConfigs[i]
 
         this.stations.push({
           id: `stn-t0-${i}`,
@@ -70,8 +82,8 @@ export class StationManager {
           trackId: 0,
           distance: sc.dist0,
           platformLength: 200,
-          isTerminal: sc.isTerminal
-        });
+          isTerminal: sc.isTerminal,
+        })
 
         this.stations.push({
           id: `stn-t1-${i}`,
@@ -80,20 +92,20 @@ export class StationManager {
           trackId: 1,
           distance: sc.dist1,
           platformLength: 200,
-          isTerminal: sc.isTerminal
-        });
+          isTerminal: sc.isTerminal,
+        })
       }
     } else {
-      const len0 = track0.totalLength;
-      const len1 = track1.totalLength;
+      const len0 = track0.totalLength
+      const len1 = track1.totalLength
 
-      const fractions = [0.15, 0.50, 0.85];
-      const suffixes = ['North', 'Central', 'South'];
+      const fractions = [0.15, 0.5, 0.85]
+      const suffixes = ['North', 'Central', 'South']
 
       for (let i = 0; i < fractions.length; i++) {
-        const town = shuffled[i % shuffled.length];
-        const name = `${town} ${suffixes[i]}`;
-        const code = town.substring(0, 3).toUpperCase();
+        const town = shuffled[i % shuffled.length]
+        const name = `${town} ${suffixes[i]}`
+        const code = town.substring(0, 3).toUpperCase()
 
         this.stations.push({
           id: `stn-t0-${i}`,
@@ -102,8 +114,8 @@ export class StationManager {
           trackId: 0,
           distance: Math.round(fractions[i] * len0),
           platformLength: 200,
-          isTerminal: false
-        });
+          isTerminal: false,
+        })
 
         this.stations.push({
           id: `stn-t1-${i}`,
@@ -112,147 +124,172 @@ export class StationManager {
           trackId: 1,
           distance: Math.round(fractions[i] * len1),
           platformLength: 200,
-          isTerminal: false
-        });
+          isTerminal: false,
+        })
       }
     }
   }
 
-  public update(trainTrackId: number, trainDistance: number, _trainSpeed: number, _dt: number, trackNet: TrackNetwork): StationStatus {
-    let currentStation: Station | null = null;
-    const track = trackNet.tracks[trainTrackId];
+  public update(
+    trainTrackId: number,
+    trainDistance: number,
+    _trainSpeed: number,
+    _dt: number,
+    trackNet: TrackNetwork
+  ): StationStatus {
+    let currentStation: Station | null = null
+    const track = trackNet.tracks[trainTrackId]
 
-    if (!track) return { currentStation: null };
+    if (!track) return { currentStation: null }
 
-    const trackLen = track.totalLength;
-    const isClosed = track.isClosed;
+    const trackLen = track.totalLength
+    const isClosed = track.isClosed
 
     for (const stn of this.stations) {
-      if (stn.trackId !== trainTrackId) continue;
+      if (stn.trackId !== trainTrackId) continue
 
-      let delta = Math.abs(trainDistance - stn.distance);
+      let delta = Math.abs(trainDistance - stn.distance)
 
       if (isClosed && delta > trackLen / 2) {
-        delta = trackLen - delta;
+        delta = trackLen - delta
       }
 
       if (delta < stn.platformLength / 2) {
-        currentStation = stn;
-        break;
+        currentStation = stn
+        break
       }
     }
 
-    return { currentStation };
+    return { currentStation }
   }
 
-  public getNextStationAhead(trainTrackId: number, trainDistance: number, trackLength: number): { station: Station; distanceAhead: number } | null {
-    let closest: Station | null = null;
-    let minDistance = Infinity;
+  public getNextStationAhead(
+    trainTrackId: number,
+    trainDistance: number,
+    trackLength: number
+  ): { station: Station; distanceAhead: number } | null {
+    let closest: Station | null = null
+    let minDistance = Infinity
 
     for (const stn of this.stations) {
-      if (stn.trackId !== trainTrackId) continue;
+      if (stn.trackId !== trainTrackId) continue
 
-      const delta = wrap(stn.distance - trainDistance, trackLength);
+      const delta = wrap(stn.distance - trainDistance, trackLength)
 
       if (delta > 0 && delta < minDistance) {
-        minDistance = delta;
-        closest = stn;
+        minDistance = delta
+        closest = stn
       }
     }
 
-    return closest ? { station: closest, distanceAhead: minDistance } : null;
+    return closest ? { station: closest, distanceAhead: minDistance } : null
   }
 
   public render(ctx: CanvasRenderingContext2D, trackNet: TrackNetwork): void {
     for (const stn of this.stations) {
-      const pt = trackNet.getStaticPointAtDistance(stn.trackId, stn.distance);
-      const side = stn.trackId === 1 ? -1 : 1;
-      const perpAngle = pt.angle + (Math.PI / 2) * side;
+      const pt = trackNet.getStaticPointAtDistance(stn.trackId, stn.distance)
+      const side = stn.trackId === 1 ? -1 : 1
+      const perpAngle = pt.angle + (Math.PI / 2) * side
 
-      const platHalfLen = 32;
-      const tangX = Math.cos(pt.angle);
-      const tangY = Math.sin(pt.angle);
-      const platEdgeDist = 9 * side;
+      const platHalfLen = 32
+      const tangX = Math.cos(pt.angle)
+      const tangY = Math.sin(pt.angle)
+      const platEdgeDist = 9 * side
 
-      const px1 = pt.x + Math.cos(pt.angle + Math.PI / 2) * platEdgeDist - tangX * platHalfLen;
-      const py1 = pt.y + Math.sin(pt.angle + Math.PI / 2) * platEdgeDist - tangY * platHalfLen;
-      const px2 = pt.x + Math.cos(pt.angle + Math.PI / 2) * platEdgeDist + tangX * platHalfLen;
-      const py2 = pt.y + Math.sin(pt.angle + Math.PI / 2) * platEdgeDist + tangY * platHalfLen;
+      const px1 =
+        pt.x +
+        Math.cos(pt.angle + Math.PI / 2) * platEdgeDist -
+        tangX * platHalfLen
+      const py1 =
+        pt.y +
+        Math.sin(pt.angle + Math.PI / 2) * platEdgeDist -
+        tangY * platHalfLen
+      const px2 =
+        pt.x +
+        Math.cos(pt.angle + Math.PI / 2) * platEdgeDist +
+        tangX * platHalfLen
+      const py2 =
+        pt.y +
+        Math.sin(pt.angle + Math.PI / 2) * platEdgeDist +
+        tangY * platHalfLen
 
-      const iconDist = 24;
-      const sx = pt.x + Math.cos(perpAngle) * iconDist;
-      const sy = pt.y + Math.sin(perpAngle) * iconDist;
+      const iconDist = 24
+      const sx = pt.x + Math.cos(perpAngle) * iconDist
+      const sy = pt.y + Math.sin(perpAngle) * iconDist
 
-      const labelDist = 44;
-      const lx = pt.x + Math.cos(perpAngle) * labelDist;
-      const ly = pt.y + Math.sin(perpAngle) * labelDist;
+      const labelDist = 44
+      const lx = pt.x + Math.cos(perpAngle) * labelDist
+      const ly = pt.y + Math.sin(perpAngle) * labelDist
 
-      ctx.save();
+      ctx.save()
 
-      ctx.strokeStyle = '#71717a';
-      ctx.lineWidth = 2.5;
-      ctx.beginPath();
-      ctx.moveTo(px1, py1);
-      ctx.lineTo(px2, py2);
-      ctx.stroke();
+      ctx.strokeStyle = '#71717a'
+      ctx.lineWidth = 2.5
+      ctx.beginPath()
+      ctx.moveTo(px1, py1)
+      ctx.lineTo(px2, py2)
+      ctx.stroke()
 
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.moveTo(pt.x + Math.cos(perpAngle) * Math.abs(platEdgeDist), pt.y + Math.sin(perpAngle) * Math.abs(platEdgeDist));
-      ctx.lineTo(sx, sy);
-      ctx.stroke();
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)'
+      ctx.lineWidth = 1.5
+      ctx.beginPath()
+      ctx.moveTo(
+        pt.x + Math.cos(perpAngle) * Math.abs(platEdgeDist),
+        pt.y + Math.sin(perpAngle) * Math.abs(platEdgeDist)
+      )
+      ctx.lineTo(sx, sy)
+      ctx.stroke()
 
-      const size = 11;
+      const size = 11
 
-      ctx.fillStyle = '#ffffff';
-      ctx.beginPath();
-
-      for (let i = 0; i < 3; i++) {
-        const th = (i * 2 * Math.PI) / 3 - Math.PI / 2;
-        const tx = sx + Math.cos(th) * size;
-        const ty = sy + Math.sin(th) * size;
-
-        if (i === 0) ctx.moveTo(tx, ty);
-        else ctx.lineTo(tx, ty);
-      }
-
-      ctx.closePath();
-      ctx.fill();
-
-      ctx.fillStyle = '#121215';
-      ctx.beginPath();
-
-      const innerSize = size * 0.45;
+      ctx.fillStyle = '#ffffff'
+      ctx.beginPath()
 
       for (let i = 0; i < 3; i++) {
-        const th = (i * 2 * Math.PI) / 3 - Math.PI / 2;
-        const tx = sx + Math.cos(th) * innerSize;
-        const ty = sy + Math.sin(th) * innerSize;
+        const th = (i * 2 * Math.PI) / 3 - Math.PI / 2
+        const tx = sx + Math.cos(th) * size
+        const ty = sy + Math.sin(th) * size
 
-        if (i === 0) ctx.moveTo(tx, ty);
-        else ctx.lineTo(tx, ty);
+        if (i === 0) ctx.moveTo(tx, ty)
+        else ctx.lineTo(tx, ty)
       }
 
-      ctx.closePath();
-      ctx.fill();
+      ctx.closePath()
+      ctx.fill()
 
-      ctx.font = '500 11px "Geist", system-ui, -apple-system, sans-serif';
-      const textMetrics = ctx.measureText(stn.name);
-      const textWidth = textMetrics.width;
+      ctx.fillStyle = '#121215'
+      ctx.beginPath()
 
-      ctx.fillStyle = 'rgba(24, 24, 28, 0.94)';
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.16)';
-      ctx.lineWidth = 1;
-      ctx.fillRect(lx - textWidth / 2 - 6, ly - 9, textWidth + 12, 18);
-      ctx.strokeRect(lx - textWidth / 2 - 6, ly - 9, textWidth + 12, 18);
+      const innerSize = size * 0.45
 
-      ctx.fillStyle = '#ffffff';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(stn.name, lx, ly);
+      for (let i = 0; i < 3; i++) {
+        const th = (i * 2 * Math.PI) / 3 - Math.PI / 2
+        const tx = sx + Math.cos(th) * innerSize
+        const ty = sy + Math.sin(th) * innerSize
 
-      ctx.restore();
+        if (i === 0) ctx.moveTo(tx, ty)
+        else ctx.lineTo(tx, ty)
+      }
+
+      ctx.closePath()
+      ctx.fill()
+
+      ctx.font = '500 11px "Geist", system-ui, -apple-system, sans-serif'
+      const textMetrics = ctx.measureText(stn.name)
+      const textWidth = textMetrics.width
+
+      ctx.fillStyle = 'rgba(24, 24, 28, 0.94)'
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.16)'
+      ctx.lineWidth = 1
+      ctx.fillRect(lx - textWidth / 2 - 6, ly - 9, textWidth + 12, 18)
+      ctx.strokeRect(lx - textWidth / 2 - 6, ly - 9, textWidth + 12, 18)
+
+      ctx.fillStyle = '#ffffff'
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      ctx.fillText(stn.name, lx, ly)
+
+      ctx.restore()
     }
   }
 }

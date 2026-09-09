@@ -4,17 +4,18 @@
   --color-sm-black: #121215;
   --color-sm-blue: #008cff;
   --color-sm-white: #ffffff;
-  
+
   --color-surface: rgba(22, 22, 26, 0.94);
   --color-surface-card: #18181d;
   --color-border: rgba(255, 255, 255, 0.14);
   --color-border-subtle: rgba(255, 255, 255, 0.08);
-  
+
   --color-neutral-300: #d4d4d4;
   --color-neutral-400: #a3a3a3;
   --color-neutral-500: #737373;
-  
-  --font-sans: 'Geist', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+
+  --font-sans:
+    'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, monospace;
   --font-display: var(--font-sans);
   --font-body: var(--font-sans);
@@ -30,7 +31,8 @@
   text-shadow: none !important;
 }
 
-html, body {
+html,
+body {
   width: 100%;
   height: 100%;
   overflow: hidden;
@@ -248,7 +250,9 @@ html, body {
   cursor: pointer;
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  transition: background-color 0.15s ease, border-color 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
 }
 
 .hud-btn:hover {
@@ -358,7 +362,9 @@ html, body {
   font-weight: 600;
   cursor: pointer;
   flex-shrink: 0;
-  transition: background-color 0.15s ease, border-color 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
 }
 
 .warning-btn:hover {
@@ -396,7 +402,9 @@ html, body {
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.15s ease, border-color 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
   pointer-events: auto;
 }
 
@@ -458,7 +466,9 @@ html, body {
   color: var(--color-neutral-400);
   cursor: pointer;
   border-radius: 4px;
-  transition: background-color 0.12s ease, color 0.12s ease;
+  transition:
+    background-color 0.12s ease,
+    color 0.12s ease;
   text-align: left;
 }
 
@@ -554,7 +564,10 @@ html, body {
   color: var(--color-neutral-300);
   cursor: pointer;
   border-radius: 6px;
-  transition: background-color 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+  transition:
+    background-color 0.12s ease,
+    color 0.12s ease,
+    border-color 0.12s ease;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -617,7 +630,9 @@ html, body {
   color: var(--color-neutral-400);
   cursor: pointer;
   border-radius: 4px;
-  transition: background-color 0.12s ease, color 0.12s ease;
+  transition:
+    background-color 0.12s ease,
+    color 0.12s ease;
   text-align: left;
 }
 
@@ -653,7 +668,9 @@ html, body {
   color: var(--color-neutral-400);
   cursor: pointer;
   border-radius: 4px;
-  transition: background-color 0.12s ease, color 0.12s ease;
+  transition:
+    background-color 0.12s ease,
+    color 0.12s ease;
   text-align: center;
 }
 
@@ -679,7 +696,10 @@ html, body {
   color: var(--color-neutral-200);
   cursor: pointer;
   border-radius: 6px;
-  transition: background-color 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+  transition:
+    background-color 0.12s ease,
+    color 0.12s ease,
+    border-color 0.12s ease;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -741,7 +761,10 @@ html, body {
   font-size: 11px;
   font-weight: 700;
   cursor: pointer;
-  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease;
   flex-shrink: 0;
 }
 
@@ -909,7 +932,10 @@ html, body {
   letter-spacing: 0.6px;
   white-space: nowrap;
   cursor: pointer;
-  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -979,7 +1005,9 @@ html, body {
   font-weight: 700;
   white-space: nowrap;
   cursor: pointer;
-  transition: background-color 0.15s ease, border-color 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1104,18 +1132,22 @@ html, body {
   cursor: pointer;
   padding: 0;
   transform: translateY(-50%);
-  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
-.rev-notch[data-pos="1"] {
+.rev-notch[data-pos='1'] {
   top: 0;
 }
 
-.rev-notch[data-pos="0"] {
+.rev-notch[data-pos='0'] {
   top: 50%;
 }
 
-.rev-notch[data-pos="-1"] {
+.rev-notch[data-pos='-1'] {
   top: 100%;
 }
 
@@ -1153,7 +1185,10 @@ html, body {
 .reverser-fill {
   background: rgba(255, 255, 255, 0.15);
   border-radius: 0;
-  transition: bottom 0.12s ease, height 0.12s ease, border-radius 0.12s ease;
+  transition:
+    bottom 0.12s ease,
+    height 0.12s ease,
+    border-radius 0.12s ease;
 }
 
 .lever-handle {
@@ -1299,7 +1334,9 @@ html, body {
   justify-content: center;
   opacity: 1;
   visibility: visible;
-  transition: opacity 0.25s ease, visibility 0.25s ease;
+  transition:
+    opacity 0.25s ease,
+    visibility 0.25s ease;
   pointer-events: all;
 }
 
@@ -1592,4 +1629,3 @@ html, body {
     padding: 4px 10px 4px 6px;
   }
 }
-

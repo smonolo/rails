@@ -7,6 +7,7 @@ This document outlines the architectural blueprints, technical specifications, a
 ## 1. Procedural World & Network Generation
 
 ### Objective
+
 Replace the static track, station, crossing, and scenery definitions in [`src/track.ts`](file:///home/stefano/dev/rails/src/track.ts), [`src/stations.ts`](file:///home/stefano/dev/rails/src/stations.ts), and [`src/scenery.ts`](file:///home/stefano/dev/rails/src/scenery.ts) with a deterministic, seed-based procedural generation engine.
 
 ### Pipeline Stages
@@ -22,6 +23,7 @@ flowchart TD
 ```
 
 ### Technical Specifications
+
 1. **Deterministic PRNG**:
    - Use a seeded PRNG (e.g. Mulberry32 or SplitMix32) so any generated world can be reproduced or shared via URL query string (`?seed=123456`).
 2. **Settlement & Topology Graph**:
@@ -51,6 +53,7 @@ flowchart TD
 ## 2. Real-Time Multiplayer Web Architecture
 
 ### Objective
+
 Transform the client-only simulation into a shared persistent multiplayer session where multiple players drive trains, perform shunting/depot maneuvers, obey authoritative signaling, and observe dynamic traffic.
 
 ### Architecture Overview
@@ -81,6 +84,7 @@ flowchart LR
 ### Core Components
 
 #### 1. 1D Track Coordinates & Dead Reckoning
+
 - Because trains travel exclusively on pre-defined 1D spline manifolds, positions do not require continuous 2D/3D coordinate broadcasting.
 - State vector per train consist:
   $$\text{State} = \{ \text{trainId}, \text{trackId}, s, v, a, \text{reverser} \}$$
@@ -90,6 +94,7 @@ flowchart LR
 - Packet footprint: $\le 24\text{ bytes}$ per train per tick.
 
 #### 2. Authoritative Interlocking & Route Booking
+
 - Clients **never** alter switches or clear signals locally.
 - A client requests a route; the server validates that:
   1. The target block is unoccupied (track circuit test).
@@ -99,6 +104,7 @@ flowchart LR
 - Automatic Train Protection (ATP) / SPAD penalties are enforced server-side (forced emergency brake application if a train crosses a red signal).
 
 #### 3. Shunting, Depots & Consist Coupling
+
 - Model consists as a directed tree/chain of rolling stock units (`Locomotive`, `PassengerCoach`, `FreightWagon`).
 - **Coupling Mechanics**:
   - When two uncoupled consists share the same `trackId`, face each other within buffer tolerance ($\Delta s \le 0.5\text{ m}$), and have low relative speed ($\Delta v \le 5\text{ km/h}$), buffer coupling triggers automatically or on manual command.
@@ -107,11 +113,13 @@ flowchart LR
   - A player can decouple wagons at any coupling point, splitting the train into two independent physics entities.
 
 #### 4. Spatial Interest Management
+
 - Partition the world into a 2D spatial grid (e.g. $2000 \times 2000\text{ m}$ cells).
 - Clients subscribe to their active cell plus adjacent cells.
 - The server only replicates train updates, crossing animations, and prop events to clients within the visibility bubble, allowing thousands of concurrent trains across a large map.
 
 #### 5. Recommended Network Stack
+
 - **Transport**: WebTransport (over HTTP/3 QUIC) for low-latency unreliable datagrams (position packets) and reliable streams (interlock requests, chat, service assignments). WebSocket as fallback.
 - **Serialization**: Binary packing with `MessagePack` or typed `ArrayBuffer` (`DataView`).
 - **Server Runtime**:
