@@ -25,7 +25,7 @@ export class Camera {
   public minZoom: number = 0.35;
   public maxZoom: number = 2.4;
 
-  public readonly worldBounds: WorldBounds = {
+  public worldBounds: WorldBounds = {
     minX: 100,
     maxX: 2450,
     minY: 150,
@@ -38,6 +38,11 @@ export class Camera {
     this.targetX = initialX;
     this.targetY = initialY;
 
+    this.clampTarget();
+  }
+
+  public setWorldBounds(bounds: WorldBounds): void {
+    this.worldBounds = { ...bounds };
     this.clampTarget();
   }
 
@@ -128,7 +133,16 @@ export class Camera {
   public onWheel(e: WheelEvent): void {
     e.preventDefault();
 
-    const zoomDelta = e.deltaY < 0 ? 1.15 : 0.85;
+    let dy = e.deltaY;
+
+    if (e.deltaMode === 1) {
+      dy *= 18;
+    } else if (e.deltaMode === 2) {
+      dy *= 60;
+    }
+
+    const clampedDy = Math.max(-100, Math.min(100, dy));
+    const zoomDelta = Math.exp(-clampedDy * 0.002);
 
     this.targetZoom = Math.max(this.minZoom, Math.min(this.maxZoom, this.targetZoom * zoomDelta));
   }

@@ -1,5 +1,6 @@
 import type { Station } from './types.ts';
 import { TrackNetwork } from './track.ts';
+import { PRNG } from './prng.ts';
 
 export interface StationStatus {
   currentStation: Station | null;
@@ -8,79 +9,112 @@ export interface StationStatus {
 export class StationManager {
   public stations: Station[] = [];
 
-  constructor(_trackNet: TrackNetwork) {
-    this.createStations();
+  constructor(trackNet: TrackNetwork, seed: number | string = 12345) {
+    this.generateStations(trackNet, seed);
   }
 
-  private createStations(): void {
-    this.stations = [
-      {
-        id: 'stn-t0-kbc',
-        name: 'Kronberg Central',
-        code: 'KBC',
-        trackId: 0,
-        distance: 497,
-        platformLength: 120
-      },
-      {
-        id: 'stn-t0-wwj',
-        name: 'Westerwald Junction',
-        code: 'WWJ',
-        trackId: 0,
-        distance: 1770,
-        platformLength: 120
-      },
-      {
-        id: 'stn-t0-etn',
-        name: 'Eisental Nord',
-        code: 'ETN',
-        trackId: 0,
-        distance: 3039,
-        platformLength: 120
-      },
-      {
-        id: 'stn-t0-lht',
-        name: 'Lindenhafen Terminus',
-        code: 'LHT',
-        trackId: 0,
-        distance: 4257,
-        platformLength: 120,
-        isTerminal: true
-      },
-      {
-        id: 'stn-t1-kbc',
-        name: 'Kronberg Central',
-        code: 'KBC',
-        trackId: 1,
-        distance: 511,
-        platformLength: 120
-      },
-      {
-        id: 'stn-t1-wwj',
-        name: 'Westerwald Junction',
-        code: 'WWJ',
-        trackId: 1,
-        distance: 1853,
-        platformLength: 120
-      },
-      {
-        id: 'stn-t1-etn',
-        name: 'Eisental Nord',
-        code: 'ETN',
-        trackId: 1,
-        distance: 3191,
-        platformLength: 120
-      },
-      {
-        id: 'stn-t1-lht',
-        name: 'Lindenhafen Terminus',
-        code: 'LHT',
-        trackId: 1,
-        distance: 4477,
-        platformLength: 120,
-        isTerminal: true
-      }
+  public generateStations(trackNet: TrackNetwork, seed: number | string): void {
+    this.stations = [];
+    const prng = new PRNG(seed);
+
+    const namePrefixes = [
+      'Kronberg', 'Westerwald', 'Eisental', 'Lindenhafen', 'Schönbrunn',
+      'Tannenberg', 'Bergheim', 'Waldau', 'Friedrichshafen', 'Altenburg',
+      'Rosenheim', 'Neustadt', 'Falkenstein', 'Sonnenberg', 'Kaiserslautern'
     ];
+
+    const shuffled = [...namePrefixes].sort(() => prng.next() - 0.5);
+    const track0 = trackNet.tracks[0];
+    const track1 = trackNet.tracks[1];
+
+    if (!track0 || !track1) return;
+
+    if (!track0.isClosed) {
+      const len0 = track0.totalLength;
+      const len1 = track1.totalLength;
+
+      const margin = Math.min(1000, Math.round(len0 * 0.16));
+
+      const stationConfigs = [
+        {
+          name: `${shuffled[0]} West Terminus`,
+          code: shuffled[0].substring(0, 3).toUpperCase(),
+          dist0: margin,
+          dist1: margin,
+          isTerminal: true
+        },
+        {
+          name: `${shuffled[1]} Central`,
+          code: shuffled[1].substring(0, 3).toUpperCase(),
+          dist0: Math.round(len0 * 0.5),
+          dist1: Math.round(len1 * 0.5),
+          isTerminal: false
+        },
+        {
+          name: `${shuffled[2]} East Terminus`,
+          code: shuffled[2].substring(0, 3).toUpperCase(),
+          dist0: Math.round(len0 - margin),
+          dist1: Math.round(len1 - margin),
+          isTerminal: true
+        }
+      ];
+
+      for (let i = 0; i < stationConfigs.length; i++) {
+        const sc = stationConfigs[i];
+
+        this.stations.push({
+          id: `stn-t0-${i}`,
+          name: sc.name,
+          code: sc.code,
+          trackId: 0,
+          distance: sc.dist0,
+          platformLength: 200,
+          isTerminal: sc.isTerminal
+        });
+
+        this.stations.push({
+          id: `stn-t1-${i}`,
+          name: sc.name,
+          code: sc.code,
+          trackId: 1,
+          distance: sc.dist1,
+          platformLength: 200,
+          isTerminal: sc.isTerminal
+        });
+      }
+    } else {
+      const len0 = track0.totalLength;
+      const len1 = track1.totalLength;
+
+      const fractions = [0.15, 0.50, 0.85];
+      const suffixes = ['Nord', 'Central', 'Süd'];
+
+      for (let i = 0; i < fractions.length; i++) {
+        const town = shuffled[i % shuffled.length];
+        const name = `${town} ${suffixes[i]}`;
+        const code = town.substring(0, 3).toUpperCase();
+
+        this.stations.push({
+          id: `stn-t0-${i}`,
+          name,
+          code,
+          trackId: 0,
+          distance: Math.round(fractions[i] * len0),
+          platformLength: 200,
+          isTerminal: false
+        });
+
+        this.stations.push({
+          id: `stn-t1-${i}`,
+          name,
+          code,
+          trackId: 1,
+          distance: Math.round(fractions[i] * len1),
+          platformLength: 200,
+          isTerminal: false
+        });
+      }
+    }
   }
 
   public update(trainTrackId: number, trainDistance: number, _trainSpeed: number, _dt: number, trackNet: TrackNetwork): StationStatus {
@@ -90,13 +124,14 @@ export class StationManager {
     if (!track) return { currentStation: null };
 
     const trackLen = track.totalLength;
+    const isClosed = track.isClosed;
 
     for (const stn of this.stations) {
       if (stn.trackId !== trainTrackId) continue;
 
       let delta = Math.abs(trainDistance - stn.distance);
 
-      if (trainTrackId < 2 && delta > trackLen / 2) {
+      if (isClosed && delta > trackLen / 2) {
         delta = trackLen - delta;
       }
 

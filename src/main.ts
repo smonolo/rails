@@ -6,6 +6,7 @@ import { StationManager } from './stations.ts';
 import { SceneryManager } from './scenery.ts';
 import { Camera, type WorldBounds } from './camera.ts';
 import { HUD } from './hud.ts';
+import type { WorldShape, WorldSize } from './types.ts';
 
 class Game {
   private canvas: HTMLCanvasElement;
@@ -18,6 +19,12 @@ class Game {
   private camera: Camera;
   private hud: HUD;
 
+  private seed: number | string = 12345;
+  private currentShape: WorldShape = 'O';
+  private currentSize: WorldSize = 'M';
+  private loadingOverlayEl: HTMLElement | null = null;
+  private loadingSeedInfoEl: HTMLElement | null = null;
+
   private lastTime: number = 0;
   private dpr: number = 1;
   private mouseDownPos: { x: number; y: number } = { x: 0, y: 0 };
@@ -28,22 +35,126 @@ class Game {
   constructor() {
     this.canvas = document.getElementById('game-canvas') as HTMLCanvasElement;
     this.ctx = this.canvas.getContext('2d')!;
+    this.loadingOverlayEl = document.getElementById('loading-overlay');
+    this.loadingSeedInfoEl = document.getElementById('loading-seed-info');
 
-    this.trackNet = new TrackNetwork();
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlSeed = urlParams.get('seed');
+    const urlShape = urlParams.get('shape') as WorldShape | null;
+    const urlSize = urlParams.get('size') as WorldSize | null;
+    const storedSeed = localStorage.getItem('rails_seed');
+    const storedShape = localStorage.getItem('rails_shape') as WorldShape | null;
+    const storedSize = localStorage.getItem('rails_size') as WorldSize | null;
+
+    let initialSeed: number | string;
+
+    if (urlSeed && urlSeed.trim().length > 0) {
+      initialSeed = isNaN(Number(urlSeed)) ? urlSeed.trim() : Number(urlSeed);
+    } else if (storedSeed && storedSeed.trim().length > 0) {
+      initialSeed = isNaN(Number(storedSeed)) ? storedSeed.trim() : Number(storedSeed);
+    } else {
+      initialSeed = Math.floor(Math.random() * 900000) + 100000;
+    }
+
+    let initialShape: WorldShape = 'O';
+
+    if (urlShape && ['I', 'S', 'O'].includes(urlShape)) {
+      initialShape = urlShape;
+    } else if (storedShape && ['I', 'S', 'O'].includes(storedShape)) {
+      initialShape = storedShape;
+    }
+
+    let initialSize: WorldSize = 'M';
+
+    if (urlSize && ['S', 'M', 'L'].includes(urlSize)) {
+      initialSize = urlSize;
+    } else if (storedSize && ['S', 'M', 'L'].includes(storedSize)) {
+      initialSize = storedSize;
+    }
+
+    this.seed = initialSeed;
+    this.currentShape = initialShape;
+    this.currentSize = initialSize;
+
+    localStorage.setItem('rails_seed', String(initialSeed));
+    localStorage.setItem('rails_shape', initialShape);
+    localStorage.setItem('rails_size', initialSize);
+
+    const currentUrl = new URL(window.location.href);
+    currentUrl.searchParams.set('seed', String(initialSeed));
+    currentUrl.searchParams.set('shape', initialShape);
+    currentUrl.searchParams.set('size', initialSize);
+    window.history.replaceState({}, '', currentUrl.toString());
+
+    this.trackNet = new TrackNetwork(this.seed, this.currentShape, this.currentSize);
     this.train = new Train(this.trackNet);
     this.signalMgr = new SignalManager(this.trackNet);
-    this.stationMgr = new StationManager(this.trackNet);
-    this.sceneryMgr = new SceneryManager(this.trackNet);
+    this.stationMgr = new StationManager(this.trackNet, this.seed);
+    this.sceneryMgr = new SceneryManager(this.trackNet, this.stationMgr.stations, this.seed);
 
     const spawnPt = this.trackNet.getPointAtDistance(this.train.trackId, this.train.distance);
     this.camera = new Camera(spawnPt.x, spawnPt.y);
+    this.camera.setWorldBounds(this.trackNet.worldBounds);
 
     this.hud = new HUD(this.train, this.stationMgr, this.signalMgr, this.trackNet, this.camera);
+    this.hud.selectedShape = this.currentShape;
+    this.hud.selectedSize = this.currentSize;
+    this.hud.onRegenerateShape = (shape, size) => {
+      this.regenerateWorld(undefined, shape, size);
+    };
 
     this.setupResize();
     this.setupInput();
 
     requestAnimationFrame((t) => this.loop(t));
+  }
+
+  public async regenerateWorld(
+    explicitSeed?: number | string,
+    explicitShape?: WorldShape,
+    explicitSize?: WorldSize
+  ): Promise<void> {
+    const nextSeed = explicitSeed !== undefined ? explicitSeed : Math.floor(Math.random() * 900000) + 100000;
+    const nextShape = explicitShape !== undefined ? explicitShape : this.currentShape;
+    const nextSize = explicitSize !== undefined ? explicitSize : this.currentSize;
+
+    this.seed = nextSeed;
+    this.currentShape = nextShape;
+    this.currentSize = nextSize;
+
+    localStorage.setItem('rails_seed', String(nextSeed));
+    localStorage.setItem('rails_shape', nextShape);
+    localStorage.setItem('rails_size', nextSize);
+
+    const currentUrl = new URL(window.location.href);
+    currentUrl.searchParams.set('seed', String(nextSeed));
+    currentUrl.searchParams.set('shape', nextShape);
+    currentUrl.searchParams.set('size', nextSize);
+    window.history.replaceState({}, '', currentUrl.toString());
+
+    if (this.loadingOverlayEl && this.loadingSeedInfoEl) {
+      this.loadingSeedInfoEl.textContent = `Seed #${nextSeed} · Synthesizing ${nextShape}-shape (${nextSize}) layout...`;
+      this.loadingOverlayEl.classList.remove('hidden');
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 60));
+
+    this.trackNet.generate(this.seed, this.currentShape, this.currentSize);
+    this.camera.setWorldBounds(this.trackNet.worldBounds);
+    this.stationMgr.generateStations(this.trackNet, this.seed);
+    this.signalMgr = new SignalManager(this.trackNet);
+    this.sceneryMgr.generateScenery(this.trackNet, this.stationMgr.stations, this.seed);
+    this.train = new Train(this.trackNet);
+    this.hud.resetForWorld(this.train, this.stationMgr, this.signalMgr, this.trackNet);
+
+    const spawnPt = this.trackNet.getPointAtDistance(this.train.trackId, this.train.distance);
+    this.camera.resetToTrain(spawnPt.x, spawnPt.y);
+
+    await new Promise((resolve) => setTimeout(resolve, 140));
+
+    if (this.loadingOverlayEl) {
+      this.loadingOverlayEl.classList.add('hidden');
+    }
   }
 
   private setupResize(): void {
@@ -348,7 +459,7 @@ class Game {
     const x = bounds.minX + pad;
     const y = bounds.minY + pad;
     const w = 210;
-    const h = 104;
+    const h = 114;
 
     ctx.save();
 
@@ -366,27 +477,37 @@ class Game {
     ctx.moveTo(x + c, y + h); ctx.lineTo(x, y + h); ctx.lineTo(x, y + h - c);
     ctx.stroke();
 
+    const bW = bounds.maxX - bounds.minX;
+    const bH = bounds.maxY - bounds.minY;
+    const boundsKm = `${(bW / 1000).toFixed(2)} × ${(bH / 1000).toFixed(2)} km`;
+    const totalTrackKm = `${(this.trackNet.tracks.reduce((sum, t) => sum + t.totalLength, 0) / 1000).toFixed(1)} km`;
+
     ctx.font = '600 8.5px "Geist Mono", monospace';
     ctx.fillStyle = '#484856';
-    ctx.fillText('BOUNDS', x + 12, y + 20);
+    ctx.fillText('BOUNDS', x + 12, y + 18);
     ctx.fillStyle = '#7c7c8c';
-    ctx.fillText('2.35 × 1.65 km', x + 76, y + 20);
+    ctx.fillText(boundsKm, x + 76, y + 18);
 
     ctx.fillStyle = '#484856';
-    ctx.fillText('TRACKAGE', x + 12, y + 36);
+    ctx.fillText('TRACKAGE', x + 12, y + 32);
     ctx.fillStyle = '#7c7c8c';
-    ctx.fillText('10.2 km', x + 76, y + 36);
+    ctx.fillText(totalTrackKm, x + 76, y + 32);
 
     ctx.fillStyle = '#484856';
-    ctx.fillText('SYSTEM', x + 12, y + 52);
+    ctx.fillText('LAYOUT', x + 12, y + 46);
     ctx.fillStyle = '#7c7c8c';
-    ctx.fillText('15 kV · 1435 mm', x + 76, y + 52);
+    ctx.fillText(`${this.trackNet.shape}-SHAPE`, x + 76, y + 46);
 
     ctx.fillStyle = '#484856';
-    ctx.fillText('UNIT SCALE', x + 12, y + 72);
+    ctx.fillText('SEED', x + 12, y + 60);
+    ctx.fillStyle = '#7c7c8c';
+    ctx.fillText(String(this.seed), x + 76, y + 60);
+
+    ctx.fillStyle = '#484856';
+    ctx.fillText('SCALE', x + 12, y + 78);
 
     const barX = x + 76;
-    const barY = y + 70;
+    const barY = y + 76;
     const barLen = 100;
 
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.14)';

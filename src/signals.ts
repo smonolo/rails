@@ -14,200 +14,204 @@ export class SignalManager {
     this.setupBlocksAndSignals(trackNet);
   }
 
-  private setupBlocksAndSignals(trackNet: TrackNetwork): void {
+  public setupBlocksAndSignals(trackNet: TrackNetwork): void {
     this.signals = [];
     this.blocks = [];
 
     for (let trackId = 0; trackId < 2; trackId++) {
-      const totalLen = trackNet.tracks[trackId].totalLength;
-      const numBlocks = 4;
-      const blockLen = totalLen / numBlocks;
+      const track = trackNet.tracks[trackId];
+
+      if (!track) continue;
+
+      const totalLen = track.totalLength;
       const trackNum = trackId + 1;
-      const side = trackId === 1 ? -1 : 1;
+      const trackSide = trackId === 1 ? -1 : 1;
+      const isClosed = track.isClosed;
 
-      for (let b = 0; b < numBlocks; b++) {
-        const blockStart = (b * blockLen) % totalLen;
-        const fwdPrimDist = (blockStart + 12) % totalLen;
-        const nextFwdPrimDist = (((b + 1) * blockLen) + 12) % totalLen;
-        let fwdSecDist = (fwdPrimDist - 800 + totalLen) % totalLen;
+      if (isClosed) {
+        const numBlocks = Math.max(3, Math.round(totalLen / 1250));
+        const blockLen = totalLen / numBlocks;
 
-        const revPrimDist = ((b + 1) * blockLen - 12 + totalLen) % totalLen;
-        const prevRevPrimDist = (b * blockLen - 12 + totalLen) % totalLen;
-        const revSecDist = (revPrimDist + 800) % totalLen;
+        for (let i = 0; i < numBlocks; i++) {
+          const boundaryDist = Math.round(i * blockLen);
+          const fwdPrimDist = Math.round((boundaryDist + 18) % totalLen);
+          const revPrimDist = Math.round((boundaryDist - 18 + totalLen) % totalLen);
 
-        const fwdPrimId = `sig-hp-t${trackId}-fwd-b${b + 1}`;
-        const fwdSecId = `sig-vr-t${trackId}-fwd-b${b + 1}`;
-        const revPrimId = `sig-hp-t${trackId}-rev-b${b + 1}`;
-        const revSecId = `sig-vr-t${trackId}-rev-b${b + 1}`;
+          const fwdSecDist = Math.round((fwdPrimDist - 800 + totalLen) % totalLen);
+          const revSecDist = Math.round((revPrimDist + 800) % totalLen);
 
-        const pFwdPt = trackNet.getStaticPointAtDistance(trackId, fwdPrimDist);
-        const pFwdPerp = pFwdPt.angle + (Math.PI / 2) * side;
-        const pFwdWorldX = pFwdPt.x + Math.cos(pFwdPerp) * 22;
-        const pFwdWorldY = pFwdPt.y + Math.sin(pFwdPerp) * 22;
+          const fwdPrimId = `sig-hp-t${trackId}-fwd-b${i + 1}`;
+          const revPrimId = `sig-hp-t${trackId}-rev-b${i + 1}`;
+          const fwdSecId = `sig-vr-t${trackId}-fwd-b${i + 1}`;
+          const revSecId = `sig-vr-t${trackId}-rev-b${i + 1}`;
 
-        const sFwdPt = trackNet.getStaticPointAtDistance(trackId, fwdSecDist);
-        const sFwdPerp = sFwdPt.angle + (Math.PI / 2) * side;
-        const sFwdWorldX = sFwdPt.x + Math.cos(sFwdPerp) * 22;
-        const sFwdWorldY = sFwdPt.y + Math.sin(sFwdPerp) * 22;
+          const primFwd = this.createSignal(
+            trackNet, fwdPrimId, `Hauptsignal Hp ${trackNum}.${i + 1} ▸`,
+            trackId, 'primary', fwdPrimDist, 1, trackSide, i
+          );
 
-        const pRevPt = trackNet.getStaticPointAtDistance(trackId, revPrimDist);
-        const pRevPerp = pRevPt.angle + (Math.PI / 2) * side;
-        const pRevWorldX = pRevPt.x + Math.cos(pRevPerp) * 22;
-        const pRevWorldY = pRevPt.y + Math.sin(pRevPerp) * 22;
+          const primRev = this.createSignal(
+            trackNet, revPrimId, `Hauptsignal Hp ${trackNum}.${i + 1}G ◂`,
+            trackId, 'primary', revPrimDist, -1, trackSide, i + 50
+          );
 
-        const sRevPt = trackNet.getStaticPointAtDistance(trackId, revSecDist);
-        const sRevPerp = sRevPt.angle + (Math.PI / 2) * side;
-        const sRevWorldX = sRevPt.x + Math.cos(sRevPerp) * 22;
-        const sRevWorldY = sRevPt.y + Math.sin(sRevPerp) * 22;
+          const secFwd = this.createSignal(
+            trackNet, fwdSecId, `Vorsignal Vr ${trackNum}.${i + 1} ▸`,
+            trackId, 'secondary', fwdSecDist, 1, trackSide, i, fwdPrimId
+          );
 
-        const primFwd: Signal = {
-          id: fwdPrimId,
-          name: `Hauptsignal Hp ${trackNum}.${b + 1} ▸`,
-          trackId,
-          type: 'primary',
-          distance: fwdPrimDist,
-          aspect: 'green',
-          side,
-          direction: 1,
-          manualOverride: false,
-          manualAspect: null,
-          blockId: b,
-          worldX: pFwdWorldX,
-          worldY: pFwdWorldY
-        };
+          const secRev = this.createSignal(
+            trackNet, revSecId, `Vorsignal Vr ${trackNum}.${i + 1}G ◂`,
+            trackId, 'secondary', revSecDist, -1, trackSide, i + 50, revPrimId
+          );
 
-        const secFwd: Signal = {
-          id: fwdSecId,
-          name: `Vorsignal Vr ${trackNum}.${b + 1} ▸`,
-          trackId,
-          type: 'secondary',
-          distance: fwdSecDist,
-          aspect: 'green',
-          side,
-          direction: 1,
-          manualOverride: false,
-          manualAspect: null,
-          blockId: b,
-          linkedPrimaryId: fwdPrimId,
-          worldX: sFwdWorldX,
-          worldY: sFwdWorldY
-        };
+          this.signals.push(primFwd, primRev, secFwd, secRev);
+        }
 
-        const primRev: Signal = {
-          id: revPrimId,
-          name: `Hauptsignal Hp ${trackNum}.${b + 1}G ◂`,
-          trackId,
-          type: 'primary',
-          distance: revPrimDist,
-          aspect: 'green',
-          side,
-          direction: -1,
-          manualOverride: false,
-          manualAspect: null,
-          blockId: b + 10,
-          worldX: pRevWorldX,
-          worldY: pRevWorldY
-        };
+        for (let b = 0; b < numBlocks; b++) {
+          const startD = Math.round(b * blockLen) + 18;
+          const endD = b === numBlocks - 1
+            ? totalLen - 18
+            : Math.round((b + 1) * blockLen) - 18;
+          const nextIdx = (b + 1) % numBlocks;
 
-        const secRev: Signal = {
-          id: revSecId,
-          name: `Vorsignal Vr ${trackNum}.${b + 1}G ◂`,
-          trackId,
-          type: 'secondary',
-          distance: revSecDist,
-          aspect: 'green',
-          side,
-          direction: -1,
-          manualOverride: false,
-          manualAspect: null,
-          blockId: b + 10,
-          linkedPrimaryId: revPrimId,
-          worldX: sRevWorldX,
-          worldY: sRevWorldY
-        };
+          const fwdPrimId = `sig-hp-t${trackId}-fwd-b${b + 1}`;
+          const fwdSecId = `sig-vr-t${trackId}-fwd-b${b + 1}`;
+          const revPrimId = `sig-hp-t${trackId}-rev-b${nextIdx + 1}`;
+          const revSecId = `sig-vr-t${trackId}-rev-b${nextIdx + 1}`;
 
-        this.signals.push(primFwd, secFwd, primRev, secRev);
+          this.blocks.push({
+            id: b,
+            trackId,
+            direction: 1,
+            startDistance: startD,
+            endDistance: endD,
+            isOccupied: false,
+            primarySignalId: fwdPrimId,
+            secondarySignalId: fwdSecId
+          });
 
-        this.blocks.push({
-          id: b,
-          trackId,
-          direction: 1,
-          startDistance: fwdPrimDist,
-          endDistance: nextFwdPrimDist,
-          isOccupied: false,
-          primarySignalId: fwdPrimId,
-          secondarySignalId: fwdSecId
-        });
+          this.blocks.push({
+            id: b + 50,
+            trackId,
+            direction: -1,
+            startDistance: startD,
+            endDistance: endD,
+            isOccupied: false,
+            primarySignalId: revPrimId,
+            secondarySignalId: revSecId
+          });
+        }
+      } else {
+        const leadLen = Math.min(950, Math.round(totalLen * 0.20));
+        const availableLen = totalLen - 2 * leadLen;
+        const numBlocks = Math.max(2, Math.round(availableLen / 1200));
+        const blockLen = availableLen / numBlocks;
 
-        this.blocks.push({
-          id: b + 10,
-          trackId,
-          direction: -1,
-          startDistance: prevRevPrimDist,
-          endDistance: revPrimDist,
-          isOccupied: false,
-          primarySignalId: revPrimId,
-          secondarySignalId: revSecId
-        });
+        for (let i = 0; i <= numBlocks; i++) {
+          const boundaryDist = Math.round(leadLen + i * blockLen);
+          const fwdPrimDist = boundaryDist + 18;
+          const revPrimDist = boundaryDist - 18;
+
+          const fwdSecDist = Math.max(80, fwdPrimDist - 800);
+          const revSecDist = Math.min(totalLen - 80, revPrimDist + 800);
+
+          const fwdPrimId = `sig-hp-t${trackId}-fwd-b${i + 1}`;
+          const revPrimId = `sig-hp-t${trackId}-rev-b${i + 1}`;
+          const fwdSecId = `sig-vr-t${trackId}-fwd-b${i + 1}`;
+          const revSecId = `sig-vr-t${trackId}-rev-b${i + 1}`;
+
+          const primFwd = this.createSignal(
+            trackNet, fwdPrimId, `Hauptsignal Hp ${trackNum}.${i + 1} ▸`,
+            trackId, 'primary', fwdPrimDist, 1, trackSide, i
+          );
+
+          const primRev = this.createSignal(
+            trackNet, revPrimId, `Hauptsignal Hp ${trackNum}.${i + 1}G ◂`,
+            trackId, 'primary', revPrimDist, -1, trackSide, i + 50
+          );
+
+          const secFwd = this.createSignal(
+            trackNet, fwdSecId, `Vorsignal Vr ${trackNum}.${i + 1} ▸`,
+            trackId, 'secondary', fwdSecDist, 1, trackSide, i, fwdPrimId
+          );
+
+          const secRev = this.createSignal(
+            trackNet, revSecId, `Vorsignal Vr ${trackNum}.${i + 1}G ◂`,
+            trackId, 'secondary', revSecDist, -1, trackSide, i + 50, revPrimId
+          );
+
+          this.signals.push(primFwd, primRev, secFwd, secRev);
+        }
+
+        for (let b = 0; b < numBlocks; b++) {
+          const startD = Math.round(leadLen + b * blockLen) + 18;
+          const endD = Math.round(leadLen + (b + 1) * blockLen) - 18;
+
+          const fwdPrimId = `sig-hp-t${trackId}-fwd-b${b + 1}`;
+          const fwdSecId = `sig-vr-t${trackId}-fwd-b${b + 1}`;
+          const revPrimId = `sig-hp-t${trackId}-rev-b${b + 2}`;
+          const revSecId = `sig-vr-t${trackId}-rev-b${b + 2}`;
+
+          this.blocks.push({
+            id: b,
+            trackId,
+            direction: 1,
+            startDistance: startD,
+            endDistance: endD,
+            isOccupied: false,
+            primarySignalId: fwdPrimId,
+            secondarySignalId: fwdSecId
+          });
+
+          this.blocks.push({
+            id: b + 50,
+            trackId,
+            direction: -1,
+            startDistance: startD,
+            endDistance: endD,
+            isOccupied: false,
+            primarySignalId: revPrimId,
+            secondarySignalId: revSecId
+          });
+        }
       }
     }
+  }
 
-    if (trackNet.tracks[2]) {
-      const sidingLen = trackNet.tracks[2].totalLength;
-      const sPt = trackNet.getStaticPointAtDistance(2, 40);
-      const sPerp = sPt.angle - Math.PI / 2;
-      const sWorldX = sPt.x + Math.cos(sPerp) * 20;
-      const sWorldY = sPt.y + Math.sin(sPerp) * 20;
+  private createSignal(
+    trackNet: TrackNetwork,
+    id: string,
+    name: string,
+    trackId: number,
+    type: 'primary' | 'secondary',
+    distance: number,
+    direction: 1 | -1,
+    side: 1 | -1,
+    blockId: number,
+    linkedPrimaryId?: string
+  ): Signal {
+    const pt = trackNet.getStaticPointAtDistance(trackId, distance);
+    const perp = pt.angle + (Math.PI / 2) * side;
+    const worldX = pt.x + Math.cos(perp) * 22;
+    const worldY = pt.y + Math.sin(perp) * 22;
 
-      const vrPt = trackNet.getStaticPointAtDistance(2, 15);
-      const vrPerp = vrPt.angle - Math.PI / 2;
-      const vrWorldX = vrPt.x + Math.cos(vrPerp) * 20;
-      const vrWorldY = vrPt.y + Math.sin(vrPerp) * 20;
-
-      this.signals.push({
-        id: 'sig-siding-1',
-        name: 'Sperrsignal Sh 1 ▸',
-        trackId: 2,
-        type: 'primary',
-        distance: 40,
-        aspect: 'green',
-        side: -1,
-        direction: 1,
-        manualOverride: false,
-        manualAspect: null,
-        blockId: 99,
-        worldX: sWorldX,
-        worldY: sWorldY
-      });
-
-      this.signals.push({
-        id: 'sig-siding-1-vr',
-        name: 'Vorsignal Sh 1 ▸',
-        trackId: 2,
-        type: 'secondary',
-        distance: 15,
-        aspect: 'green',
-        side: -1,
-        direction: 1,
-        manualOverride: false,
-        manualAspect: null,
-        blockId: 99,
-        linkedPrimaryId: 'sig-siding-1',
-        worldX: vrWorldX,
-        worldY: vrWorldY
-      });
-
-      this.blocks.push({
-        id: 99,
-        trackId: 2,
-        direction: 1,
-        startDistance: 0,
-        endDistance: sidingLen,
-        isOccupied: false,
-        primarySignalId: 'sig-siding-1',
-        secondarySignalId: 'sig-siding-1-vr'
-      });
-    }
+    return {
+      id,
+      name,
+      trackId,
+      type,
+      distance,
+      aspect: 'green',
+      side,
+      direction,
+      manualOverride: false,
+      manualAspect: null,
+      blockId,
+      linkedPrimaryId,
+      worldX,
+      worldY
+    };
   }
 
   private isSpanOverlappingBlock(
@@ -322,18 +326,39 @@ export class SignalManager {
       }
     }
 
+    let trainStart = trainTailDist;
+    let trainEnd = trainHeadDist;
+
+    if (currentTrack.isClosed) {
+      if (Math.abs(trainEnd - trainStart) > trackLen / 2) {
+        if (trainStart < trainEnd) {
+          const tmp = trainStart;
+          trainStart = trainEnd;
+          trainEnd = tmp;
+        }
+      } else {
+        if (trainStart > trainEnd) {
+          const tmp = trainStart;
+          trainStart = trainEnd;
+          trainEnd = tmp;
+        }
+      }
+    } else {
+      const minD = Math.min(trainStart, trainEnd);
+      const maxD = Math.max(trainStart, trainEnd);
+      trainStart = minD;
+      trainEnd = maxD;
+    }
+
     for (const block of this.blocks) {
-      if (!this.trainHasMoved || block.trackId !== trainTrackId || block.direction !== activeDir) {
+      if (!this.trainHasMoved || block.trackId !== trainTrackId) {
         block.isOccupied = false;
         continue;
       }
 
-      const spanStart = Math.min(trainTailDist, trainHeadDist);
-      const spanEnd = Math.max(trainTailDist, trainHeadDist);
-
       block.isOccupied = this.isSpanOverlappingBlock(
-        spanStart,
-        spanEnd,
+        trainStart,
+        trainEnd,
         block.startDistance,
         block.endDistance,
         trackLen
@@ -360,6 +385,17 @@ export class SignalManager {
 
         if (linkedPrim) {
           secSig.aspect = linkedPrim.aspect === 'red' ? 'yellow' : 'green';
+        }
+
+        const colocatedPrim = this.signals.find(s =>
+          s.type === 'primary' &&
+          s.trackId === secSig.trackId &&
+          s.direction === secSig.direction &&
+          Math.abs(s.distance - secSig.distance) <= 35
+        );
+
+        if (colocatedPrim && colocatedPrim.aspect === 'red') {
+          secSig.aspect = 'dark';
         }
       }
     }
@@ -520,7 +556,11 @@ export class SignalManager {
         ctx.fill();
         ctx.stroke();
 
-        ctx.fillStyle = sig.aspect === 'yellow' ? '#f59e0b' : '#10b981';
+        if (sig.aspect === 'dark') {
+          ctx.fillStyle = '#27272a';
+        } else {
+          ctx.fillStyle = sig.aspect === 'yellow' ? '#f59e0b' : '#10b981';
+        }
         ctx.beginPath();
         ctx.moveTo(0, -size + 3);
         ctx.lineTo(size - 3, 0);

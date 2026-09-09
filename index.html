@@ -48,18 +48,11 @@
           </button>
           <div class="dropdown-menu hidden" id="dropdown-menu">
             <button class="dropdown-item" id="btn-menu-center">
-              <span class="item-icon">⊙</span>
               <span>Center camera</span>
               <span class="item-shortcut">C</span>
             </button>
-            <button class="dropdown-item" id="btn-menu-respawn">
-              <span class="item-icon">⟳</span>
-              <span>Respawn train</span>
-              <span class="item-shortcut">R</span>
-            </button>
             <div class="dropdown-divider"></div>
             <button class="dropdown-item" id="btn-menu-controls">
-              <span class="item-icon">?</span>
               <span>Controls & help</span>
               <span class="item-shortcut">H</span>
             </button>
@@ -68,25 +61,60 @@
       </div>
 
       <div class="hud-bottom-row">
-        <div class="hud-panel train-config-card">
-          <div class="card-header">
-            <span class="card-title">Train Configuration</span>
-          </div>
-          <div class="type-selector-group">
-            <button class="type-btn active" id="btn-type-regional" data-type="regional">Regional</button>
-            <button class="type-btn" id="btn-type-cargo" data-type="cargo">Cargo</button>
-            <button class="type-btn" id="btn-type-highspeed" data-type="high_speed">High-Speed</button>
-          </div>
-          <div class="consist-row">
-            <span class="consist-label">Carriages</span>
-            <div class="consist-stepper">
-              <button class="consist-btn" id="btn-carr-minus" title="Remove carriage">−</button>
-              <span class="consist-val" id="carr-count-val">3</span>
-              <button class="consist-btn" id="btn-carr-plus" title="Add carriage">+</button>
+        <div class="bottom-left-stack">
+          <div class="hud-panel train-config-card hidden" id="train-config-card">
+            <div class="card-header">
+              <span class="card-title">Train Configuration</span>
+              <button class="modal-close-btn" id="btn-close-train-config" title="Close" aria-label="Close">x</button>
             </div>
-            <span class="consist-weight" id="consist-weight-val">228 t</span>
+            <div class="type-selector-group">
+              <button class="type-btn active" id="btn-type-regional" data-type="regional">Regional</button>
+              <button class="type-btn" id="btn-type-cargo" data-type="cargo">Cargo</button>
+              <button class="type-btn" id="btn-type-highspeed" data-type="high_speed">High-Speed</button>
+            </div>
+            <div class="consist-row">
+              <span class="consist-label">Carriages</span>
+              <div class="consist-stepper">
+                <button class="consist-btn" id="btn-carr-minus" title="Remove carriage">-</button>
+                <span class="consist-val" id="carr-count-val">3</span>
+                <button class="consist-btn" id="btn-carr-plus" title="Add carriage">+</button>
+              </div>
+              <span class="consist-weight" id="consist-weight-val">228 t</span>
+            </div>
+            <div class="train-config-actions">
+              <button class="train-action-btn" id="btn-invert-train" title="Invert train orientation">Invert train</button>
+              <button class="train-action-btn" id="btn-respawn-train" title="Respawn train at initial position">Respawn train</button>
+            </div>
           </div>
-          <button class="invert-btn" id="btn-invert-train" title="Invert train orientation">⇄ Invert Train</button>
+
+          <div class="hud-panel world-config-card hidden" id="world-config-card">
+            <div class="card-header">
+              <span class="card-title">World Configuration</span>
+              <button class="modal-close-btn" id="btn-close-world-config" title="Close" aria-label="Close">x</button>
+            </div>
+            <div class="config-section-label">Shape</div>
+            <div class="shape-selector-group">
+              <button class="shape-btn" id="btn-shape-i" data-shape="I">I-Shape (Straight)</button>
+              <button class="shape-btn" id="btn-shape-s" data-shape="S">S-Shape (Curves)</button>
+              <button class="shape-btn active" id="btn-shape-o" data-shape="O">O-Shape (Circle)</button>
+            </div>
+            <div class="config-section-label">Size</div>
+            <div class="size-selector-group">
+              <button class="size-btn" id="btn-size-s" data-size="S">S (Small)</button>
+              <button class="size-btn active" id="btn-size-m" data-size="M">M (Medium)</button>
+              <button class="size-btn" id="btn-size-l" data-size="L">L (Large)</button>
+            </div>
+            <button class="world-regen-btn" id="btn-world-regenerate" title="Regenerate world">Regenerate world</button>
+          </div>
+
+          <div class="bottom-left-buttons">
+            <button class="hud-btn btn-config-toggle" id="btn-toggle-train-config" title="Train configuration (T)">
+              <span>Train config</span>
+            </button>
+            <button class="hud-btn btn-config-toggle" id="btn-toggle-world-config" title="World configuration">
+              <span>World config</span>
+            </button>
+          </div>
         </div>
 
         <div class="driver-stack">
@@ -96,9 +124,9 @@
 
           <div class="hud-panel driver-console">
             <div class="reverser-group">
-              <button class="rev-btn" id="btn-rev">Rev</button>
-              <button class="rev-btn" id="btn-neu">Neu</button>
               <button class="rev-btn active" id="btn-fwd">Fwd</button>
+              <button class="rev-btn" id="btn-neu">Neu</button>
+              <button class="rev-btn" id="btn-rev">Rev</button>
             </div>
 
             <div class="levers-container">
@@ -175,12 +203,28 @@
               <span class="control-desc">Interactive signals & track switches</span>
               <div class="control-keys"><span class="key-badge">Click on map</span></div>
             </div>
+            <div class="control-row">
+              <span class="control-desc">Train configuration</span>
+              <div class="control-keys"><span class="key-badge">T</span></div>
+            </div>
+            <div class="control-row">
+              <span class="control-desc">Regenerate world</span>
+              <div class="control-keys"><span class="key-badge">G</span></div>
+            </div>
           </div>
 
           <div class="modal-notes">
             <p><strong>Signalling:</strong> Main signals (<span class="key-badge">Hp</span>) protect occupied blocks with Hp 0 (Stop) and Hp 1 (Clear). Distant signals (<span class="key-badge">Vr</span>) preview the upcoming Main signal (Vr 0 = Expect Stop, Vr 1 = Expect Clear). Passing an Hp 0 signal trips automatic emergency brake enforcement. Click any signal or junction switch to command routes.</p>
           </div>
         </div>
+      </div>
+    </div>
+
+    <div id="loading-overlay" class="loading-overlay hidden">
+      <div class="loading-card">
+        <div class="loading-spinner"></div>
+        <div class="loading-title">Generating World</div>
+        <div class="loading-subtitle" id="loading-seed-info">Synthesizing procedural layout...</div>
       </div>
     </div>
 

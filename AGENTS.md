@@ -54,10 +54,10 @@ When modifying or generating code in this repository, you must adhere to the fol
 3. **Block Boundaries**:
    - Each block section begins exactly at its entry primary signal (`startDistance = sig.distance`) and terminates at the next primary signal (`endDistance = nextSig.distance`).
    - A block must never be marked occupied before the front of the train has crossed the signal controlling that block.
-4. **Directional Isolation**:
+4. **Directional Isolation & Opposing Block Protection**:
    - Mainlines support bidirectional traffic (*Gleiswechselbetrieb*).
-   - Only signals matching the train's active travel direction (`trainFacing` and velocity sign) are tripped by train passage.
-   - Opposing signals must remain in their default clear state (`green`) and must not trigger false SPAD alerts.
+   - When a block section is occupied by a train, opposing primary signals protecting that section turn red (`Hp 0`) to prevent oncoming head-on collisions.
+   - SPAD detection remains directionally isolated: only signals matching the train's active travel direction (`trainFacing` and velocity sign) can trip SPAD enforcement for that train.
 5. **Neutral Styling**:
    - Never highlight manual signal changes or switch states in blue or artificial colors.
    - Signals render with neutral white borders (`#ffffff`), and switches render with neutral gray borders (`#71717a`) and white direction arrows (`#ffffff`).

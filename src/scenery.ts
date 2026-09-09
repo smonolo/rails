@@ -1,5 +1,6 @@
-import type { Point2D } from './types.ts';
+import type { Point2D, Station } from './types.ts';
 import { TrackNetwork } from './track.ts';
+import { PRNG } from './prng.ts';
 
 interface RoadSegment {
   points: Point2D[];
@@ -44,101 +45,72 @@ export class SceneryManager {
   private trees: TreeProp[] = [];
   private houses: HouseProp[] = [];
   private crossings: CrossingDef[] = [];
+  private isClosed: boolean = true;
 
-  constructor(trackNet: TrackNetwork) {
-    this.buildRoads();
+  constructor(trackNet: TrackNetwork, stations: Station[] = [], seed: number | string = 12345) {
+    this.generateScenery(trackNet, stations, seed);
+  }
+
+  public generateScenery(trackNet: TrackNetwork, stations: Station[], seed: number | string): void {
+    this.roads = [];
+    this.trackMasts = [];
+    this.trees = [];
+    this.houses = [];
+    this.crossings = [];
+    this.isClosed = trackNet.tracks[0]?.isClosed ?? true;
+
+    const prng = new PRNG(seed);
+
     this.buildCatenaryMasts(trackNet);
-    this.buildCrossings();
-    this.buildHouses();
-    this.buildTrees();
+    this.buildCrossingsAndRoads(trackNet, stations, prng);
+    this.buildSettlements(trackNet, stations, prng);
+    this.buildVegetation(trackNet, stations, prng);
   }
 
-  private buildRoads(): void {
-    this.roads = [
-      {
-        points: [
-          { x: 884, y: 150 },
-          { x: 884, y: 350 },
-          { x: 884, y: 489 },
-          { x: 890, y: 750 },
-          { x: 895, y: 1100 },
-          { x: 905, y: 1450 },
-          { x: 910, y: 1596 },
-          { x: 910, y: 1800 }
-        ]
-      },
-      {
-        points: [
-          { x: 100, y: 872 },
-          { x: 250, y: 872 },
-          { x: 319, y: 877 },
-          { x: 500, y: 890 },
-          { x: 680, y: 920 },
-          { x: 895, y: 920 }
-        ]
-      },
-      {
-        points: [
-          { x: 1800, y: 1640 },
-          { x: 1920, y: 1690 },
-          { x: 2040, y: 1720 },
-          { x: 2150, y: 1730 }
-        ]
-      },
-      {
-        points: [
-          { x: 895, y: 920 },
-          { x: 1150, y: 920 },
-          { x: 1380, y: 950 },
-          { x: 1600, y: 1020 }
-        ]
-      }
-    ];
-  }
+  private getMinTrackDistance(x: number, y: number, trackNet: TrackNetwork): number {
+    let minDist = Infinity;
 
-  private buildCrossings(): void {
-    this.crossings = [
-      {
-        cx: 884,
-        cy: 489,
-        w: 26,
-        h: 74,
-        angle: 0
-      },
-      {
-        cx: 910,
-        cy: 1596,
-        w: 26,
-        h: 74,
-        angle: 0
-      },
-      {
-        cx: 319,
-        cy: 877,
-        w: 74,
-        h: 26,
-        angle: 0
+    for (const track of trackNet.tracks) {
+      const step = Math.max(1, Math.floor(track.points.length / 250));
+
+      for (let i = 0; i < track.points.length; i += step) {
+        const pt = track.points[i];
+        const dist = Math.hypot(pt.x - x, pt.y - y);
+
+        if (dist < minDist) {
+          minDist = dist;
+        }
       }
-    ];
+    }
+
+    return minDist;
   }
 
   private buildCatenaryMasts(trackNet: TrackNetwork): void {
-    this.trackMasts = [[], []];
-    const spacing = 130;
+    this.trackMasts = [];
+    const spacing = 125;
 
-    for (let trackId = 0; trackId < 2; trackId++) {
+    for (let trackId = 0; trackId < trackNet.tracks.length; trackId++) {
       const track = trackNet.tracks[trackId];
+      const masts: CatenaryMast[] = [];
+      this.trackMasts.push(masts);
 
-      if (!track) continue;
+      if (!track || track.totalLength < spacing) continue;
 
-      const count = Math.floor(track.totalLength / spacing);
       const normalSign = trackId === 0 ? 1 : -1;
       const mastOffsetDist = 16;
+      const isLinear = !track.isClosed;
 
-      for (let i = 0; i < count; i++) {
-        const dist = i * spacing + (trackId === 0 ? 25 : 85);
+      const startDist = isLinear ? 35 : (trackId === 0 ? 25 : 85);
+      const endDist = isLinear ? track.totalLength - 35 : track.totalLength;
+      const count = Math.floor((endDist - startDist) / spacing);
+
+      for (let i = 0; i <= count; i++) {
+        const dist = startDist + i * spacing;
+
+        if (dist > track.totalLength) break;
+
         const pt = trackNet.getStaticPointAtDistance(trackId, dist);
-
         const perpAngle = pt.angle + (Math.PI / 2) * normalSign;
         const nx = Math.cos(perpAngle);
         const ny = Math.sin(perpAngle);
@@ -152,7 +124,7 @@ export class SceneryManager {
 
         const isTensioner = i % 8 === 0;
 
-        this.trackMasts[trackId].push({
+        masts.push({
           poleX,
           poleY,
           wireX,
@@ -166,89 +138,167 @@ export class SceneryManager {
     }
   }
 
-  private buildHouses(): void {
-    this.houses = [
-      { x: 580, y: 390, w: 26, h: 18, angle: 0.08 },
-      { x: 615, y: 385, w: 22, h: 16, angle: 0.05 },
-      { x: 648, y: 390, w: 28, h: 20, angle: 0.12 },
-      { x: 685, y: 395, w: 24, h: 18, angle: 0.06 },
-      { x: 720, y: 400, w: 26, h: 18, angle: 0.08 },
-      { x: 570, y: 420, w: 24, h: 16, angle: 0.1 },
-      { x: 605, y: 425, w: 30, h: 22, angle: 0.08 },
-      { x: 645, y: 430, w: 26, h: 18, angle: 0.04 },
-      { x: 680, y: 435, w: 22, h: 16, angle: 0.08 },
-      { x: 715, y: 440, w: 28, h: 20, angle: 0.05 },
-      { x: 745, y: 430, w: 24, h: 17, angle: 0.06 },
-      { x: 590, y: 450, w: 25, h: 18, angle: 0.08 },
-      { x: 630, y: 455, w: 24, h: 17, angle: 0.06 },
-      { x: 665, y: 455, w: 28, h: 19, angle: 0.09 },
-      { x: 700, y: 450, w: 26, h: 18, angle: 0.05 },
+  private buildCrossingsAndRoads(trackNet: TrackNetwork, stations: Station[], prng: PRNG): void {
+    const track0 = trackNet.tracks[0];
+    const track1 = trackNet.tracks[1];
 
-      { x: 1830, y: 1670, w: 26, h: 18, angle: -0.1 },
-      { x: 1868, y: 1680, w: 24, h: 18, angle: -0.08 },
-      { x: 1905, y: 1690, w: 30, h: 20, angle: -0.12 },
-      { x: 1945, y: 1700, w: 26, h: 18, angle: -0.15 },
-      { x: 1985, y: 1710, w: 28, h: 20, angle: -0.1 },
-      { x: 2025, y: 1720, w: 24, h: 16, angle: -0.14 },
-      { x: 1845, y: 1710, w: 24, h: 18, angle: -0.08 },
-      { x: 1885, y: 1720, w: 28, h: 20, angle: -0.12 },
-      { x: 1925, y: 1730, w: 32, h: 22, angle: -0.15 },
-      { x: 1968, y: 1740, w: 26, h: 18, angle: -0.1 },
-      { x: 2005, y: 1750, w: 28, h: 20, angle: -0.14 },
-      { x: 2045, y: 1760, w: 22, h: 16, angle: -0.08 },
+    if (!track0 || !track1) return;
 
-      { x: 175, y: 825, w: 42, h: 24, angle: 0 },
-      { x: 225, y: 825, w: 36, h: 22, angle: 0 },
-      { x: 145, y: 940, w: 44, h: 26, angle: 0 },
-      { x: 195, y: 940, w: 38, h: 22, angle: 0 },
-      { x: 140, y: 980, w: 32, h: 20, angle: 0 },
-      { x: 185, y: 980, w: 28, h: 18, angle: 0 },
-      { x: 135, y: 1020, w: 30, h: 20, angle: 0 },
-      { x: 180, y: 1020, w: 34, h: 22, angle: 0 },
-      { x: 130, y: 1060, w: 28, h: 18, angle: 0 },
-      { x: 175, y: 1060, w: 32, h: 20, angle: 0 },
-      { x: 130, y: 1100, w: 28, h: 18, angle: 0 },
+    const crossingDistances: number[] = [];
 
-      { x: 1050, y: 950, w: 28, h: 18, angle: 0.02 },
-      { x: 1090, y: 955, w: 24, h: 16, angle: 0.02 },
-      { x: 1130, y: 960, w: 32, h: 22, angle: 0.04 },
-      { x: 1170, y: 965, w: 26, h: 18, angle: 0.04 },
-      { x: 1210, y: 970, w: 30, h: 20, angle: 0.05 },
-      { x: 1060, y: 985, w: 26, h: 18, angle: 0.02 },
-      { x: 1100, y: 990, w: 30, h: 20, angle: 0.03 },
-      { x: 1145, y: 995, w: 28, h: 18, angle: 0.04 },
-      { x: 1190, y: 1000, w: 32, h: 22, angle: 0.05 },
+    if (!track0.isClosed) {
+      crossingDistances.push(
+        Math.round(track0.totalLength * 0.44),
+        Math.round(track0.totalLength * 0.82)
+      );
+    } else {
+      crossingDistances.push(
+        Math.round(track0.totalLength * 0.40),
+        Math.round(track0.totalLength * 0.90)
+      );
+    }
 
-      { x: 1420, y: 1060, w: 36, h: 24, angle: 0.08 },
-      { x: 1470, y: 1070, w: 30, h: 20, angle: 0.08 },
-      { x: 1515, y: 1080, w: 28, h: 18, angle: 0.1 },
-      { x: 1430, y: 1100, w: 32, h: 22, angle: 0.08 },
-      { x: 1475, y: 1110, w: 34, h: 22, angle: 0.09 },
-      { x: 1520, y: 1120, w: 26, h: 18, angle: 0.1 }
-    ];
+    for (const targetDist of crossingDistances) {
+      if (targetDist >= track0.totalLength - 150 || targetDist <= 150) continue;
+
+      let nearStation = false;
+
+      for (const st of stations) {
+        if (Math.abs(st.distance - targetDist) < 220) {
+          nearStation = true;
+          break;
+        }
+      }
+
+      if (nearStation) continue;
+
+      let nearSwitch = false;
+
+      for (const sw of trackNet.switches) {
+        if (targetDist >= sw.fromDistance - 50 && targetDist <= sw.toDistance + 50) {
+          nearSwitch = true;
+          break;
+        }
+      }
+
+      if (nearSwitch) continue;
+
+      const p0 = trackNet.getStaticPointAtDistance(0, targetDist);
+      const p1 = trackNet.getStaticPointAtDistance(1, Math.min(targetDist, track1.totalLength));
+
+      const cx = (p0.x + p1.x) / 2;
+      const cy = (p0.y + p1.y) / 2;
+      const spanWidth = 54;
+
+      this.crossings.push({
+        cx,
+        cy,
+        w: 24,
+        h: spanWidth,
+        angle: p0.angle
+      });
+
+      const perpAngle = p0.angle + Math.PI / 2;
+      const rnx = Math.cos(perpAngle);
+      const rny = Math.sin(perpAngle);
+
+      const arm = 550 + prng.range(0, 100);
+
+      const roadPoints: Point2D[] = [
+        {
+          x: cx - rnx * arm,
+          y: cy - rny * arm
+        },
+        {
+          x: cx + rnx * arm,
+          y: cy + rny * arm
+        }
+      ];
+
+      this.roads.push({ points: roadPoints });
+    }
   }
 
-  private buildTrees(): void {
-    this.trees = [
-      { x: 535, y: 365, r: 10 },
-      { x: 550, y: 380, r: 9 },
-      { x: 745, y: 405, r: 11 },
+  private buildSettlements(trackNet: TrackNetwork, stations: Station[], prng: PRNG): void {
+    for (const st of stations) {
+      const pt = trackNet.getStaticPointAtDistance(st.trackId, st.distance);
+      const side = st.trackId === 0 ? 1 : -1;
+      const perpAngle = pt.angle + (Math.PI / 2) * side;
+      const nx = Math.cos(perpAngle);
+      const ny = Math.sin(perpAngle);
+      const tx = Math.cos(pt.angle);
+      const ty = Math.sin(pt.angle);
 
-      { x: 1785, y: 1655, r: 10 },
-      { x: 2075, y: 1745, r: 11 },
+      const houseCount = prng.rangeInt(8, 14);
 
-      { x: 145, y: 835, r: 11 },
-      { x: 140, y: 915, r: 10 },
-      { x: 135, y: 1035, r: 11 },
+      for (let i = 0; i < houseCount; i++) {
+        const along = (i - houseCount / 2) * 28 + (prng.next() - 0.5) * 10;
+        const row = i % 2;
+        const offset = row === 0 ? 46 + (prng.next() - 0.5) * 8 : 74 + (prng.next() - 0.5) * 10;
 
-      { x: 1010, y: 940, r: 11 },
-      { x: 1250, y: 975, r: 10 },
-      { x: 1380, y: 1050, r: 11 },
-      { x: 1560, y: 1130, r: 10 },
+        const hx = pt.x + tx * along + nx * offset;
+        const hy = pt.y + ty * along + ny * offset;
 
-      { x: 1280, y: 350, r: 11 },
-      { x: 1305, y: 365, r: 9 }
-    ];
+        if (this.getMinTrackDistance(hx, hy, trackNet) >= 32) {
+          this.houses.push({
+            x: hx,
+            y: hy,
+            w: prng.range(22, 32),
+            h: prng.range(16, 22),
+            angle: pt.angle + (prng.next() - 0.5) * 0.16
+          });
+        }
+      }
+    }
+  }
+
+  private buildVegetation(trackNet: TrackNetwork, stations: Station[], prng: PRNG): void {
+    for (const st of stations) {
+      const pt = trackNet.getStaticPointAtDistance(st.trackId, st.distance);
+      const treeCount = prng.rangeInt(4, 8);
+
+      for (let i = 0; i < treeCount; i++) {
+        const angle = prng.range(0, Math.PI * 2);
+        const dist = prng.range(38, 110);
+        const tx = pt.x + Math.cos(angle) * dist;
+        const ty = pt.y + Math.sin(angle) * dist;
+
+        if (this.getMinTrackDistance(tx, ty, trackNet) >= 28) {
+          this.trees.push({
+            x: tx,
+            y: ty,
+            r: prng.range(9, 13)
+          });
+        }
+      }
+    }
+
+    const bounds = trackNet.worldBounds;
+    const clusterCount = prng.rangeInt(10, 16);
+
+    for (let c = 0; c < clusterCount; c++) {
+      const cx = prng.range(bounds.minX + 80, bounds.maxX - 80);
+      const cy = prng.range(bounds.minY + 80, bounds.maxY - 80);
+
+      if (this.getMinTrackDistance(cx, cy, trackNet) < 36) continue;
+
+      const clusterSize = prng.rangeInt(4, 9);
+
+      for (let i = 0; i < clusterSize; i++) {
+        const offsetAngle = prng.range(0, Math.PI * 2);
+        const offsetDist = prng.range(0, 36);
+        const tx = cx + Math.cos(offsetAngle) * offsetDist;
+        const ty = cy + Math.sin(offsetAngle) * offsetDist;
+
+        if (this.getMinTrackDistance(tx, ty, trackNet) >= 26) {
+          this.trees.push({
+            x: tx,
+            y: ty,
+            r: prng.range(8, 12)
+          });
+        }
+      }
+    }
   }
 
   public renderGround(ctx: CanvasRenderingContext2D): void {
@@ -389,21 +439,35 @@ export class SceneryManager {
   public renderCatenary(ctx: CanvasRenderingContext2D): void {
     ctx.save();
 
-    for (let trackId = 0; trackId < 2; trackId++) {
+    for (let trackId = 0; trackId < this.trackMasts.length; trackId++) {
       const masts = this.trackMasts[trackId];
 
-      if (masts.length < 2) continue;
+      if (!masts || masts.length < 2) continue;
 
       ctx.strokeStyle = 'rgba(215, 225, 240, 0.22)';
       ctx.lineWidth = 1.2;
       ctx.beginPath();
-      ctx.moveTo(masts[0].wireX, masts[0].wireY);
 
-      for (let i = 1; i < masts.length; i++) {
-        ctx.lineTo(masts[i].wireX, masts[i].wireY);
+      for (let i = 0; i < masts.length - 1; i++) {
+        const segDist = Math.hypot(masts[i + 1].wireX - masts[i].wireX, masts[i + 1].wireY - masts[i].wireY);
+
+        if (segDist < 180) {
+          ctx.moveTo(masts[i].wireX, masts[i].wireY);
+          ctx.lineTo(masts[i + 1].wireX, masts[i + 1].wireY);
+        }
       }
 
-      ctx.closePath();
+      if (this.isClosed && masts.length > 2) {
+        const last = masts[masts.length - 1];
+        const first = masts[0];
+        const closingDist = Math.hypot(first.wireX - last.wireX, first.wireY - last.wireY);
+
+        if (closingDist < 180) {
+          ctx.moveTo(last.wireX, last.wireY);
+          ctx.lineTo(first.wireX, first.wireY);
+        }
+      }
+
       ctx.stroke();
 
       for (const m of masts) {

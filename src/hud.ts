@@ -3,7 +3,7 @@ import { StationManager, type StationStatus } from './stations.ts';
 import { SignalManager } from './signals.ts';
 import { TrackNetwork } from './track.ts';
 import { Camera } from './camera.ts';
-import type { WarningAlert, TrainType } from './types.ts';
+import type { WarningAlert, TrainType, WorldShape, WorldSize } from './types.ts';
 
 export class HUD {
   private train: Train;
@@ -11,6 +11,9 @@ export class HUD {
   private signalMgr: SignalManager;
   private trackNet: TrackNetwork;
   private camera: Camera;
+  public selectedShape: WorldShape = 'O';
+  public selectedSize: WorldSize = 'M';
+  public onRegenerateShape?: (shape: WorldShape, size: WorldSize) => void;
 
   private speedEl!: HTMLElement;
   private gMeterEl!: HTMLElement;
@@ -40,6 +43,15 @@ export class HUD {
   private btnCarrMinus!: HTMLElement;
   private btnCarrPlus!: HTMLElement;
   private btnEb!: HTMLElement;
+
+  private trainConfigCardEl!: HTMLElement;
+  private btnToggleTrainConfigEl!: HTMLElement;
+  private btnCloseTrainConfigEl!: HTMLElement;
+
+  private worldConfigCardEl!: HTMLElement;
+  private btnToggleWorldConfigEl!: HTMLElement;
+  private btnCloseWorldConfigEl!: HTMLElement;
+  private btnWorldRegenerateEl!: HTMLElement;
 
   private draggingThrottle: boolean = false;
   private draggingBrake: boolean = false;
@@ -71,7 +83,6 @@ export class HUD {
     this.throttleFillEl = document.getElementById('throttle-bar-fill')!;
     this.throttleHandleEl = document.getElementById('throttle-handle')!;
     this.throttleValEl = document.getElementById('throttle-val')!;
-
     this.brakeFillEl = document.getElementById('brake-bar-fill')!;
     this.brakeHandleEl = document.getElementById('brake-handle')!;
     this.brakeValEl = document.getElementById('brake-val')!;
@@ -90,6 +101,15 @@ export class HUD {
     this.btnCarrMinus = document.getElementById('btn-carr-minus')!;
     this.btnCarrPlus = document.getElementById('btn-carr-plus')!;
     this.btnEb = document.getElementById('btn-eb')!;
+
+    this.trainConfigCardEl = document.getElementById('train-config-card')!;
+    this.btnToggleTrainConfigEl = document.getElementById('btn-toggle-train-config')!;
+    this.btnCloseTrainConfigEl = document.getElementById('btn-close-train-config')!;
+
+    this.worldConfigCardEl = document.getElementById('world-config-card')!;
+    this.btnToggleWorldConfigEl = document.getElementById('btn-toggle-world-config')!;
+    this.btnCloseWorldConfigEl = document.getElementById('btn-close-world-config')!;
+    this.btnWorldRegenerateEl = document.getElementById('btn-world-regenerate')!;
   }
 
   private setupEventListeners(): void {
@@ -114,13 +134,64 @@ export class HUD {
       this.dropdownMenuEl.classList.add('hidden');
     });
 
-    document.getElementById('btn-menu-respawn')?.addEventListener('click', () => {
+    document.getElementById('btn-respawn-train')?.addEventListener('click', () => {
       this.respawnTrain();
     });
 
     document.getElementById('btn-menu-controls')?.addEventListener('click', () => {
       this.openControlsModal();
       this.dropdownMenuEl.classList.add('hidden');
+    });
+
+    this.btnToggleTrainConfigEl?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.worldConfigCardEl.classList.add('hidden');
+      this.trainConfigCardEl.classList.toggle('hidden');
+    });
+
+    this.btnCloseTrainConfigEl?.addEventListener('click', () => {
+      this.trainConfigCardEl.classList.add('hidden');
+    });
+
+    this.btnToggleWorldConfigEl?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.trainConfigCardEl.classList.add('hidden');
+      this.worldConfigCardEl.classList.toggle('hidden');
+    });
+
+    this.btnCloseWorldConfigEl?.addEventListener('click', () => {
+      this.worldConfigCardEl.classList.add('hidden');
+    });
+
+    const setShape = (shape: WorldShape) => {
+      this.selectedShape = shape;
+      document.querySelectorAll('.shape-btn').forEach(btn => btn.classList.remove('active'));
+
+      if (shape === 'I') document.getElementById('btn-shape-i')?.classList.add('active');
+      if (shape === 'S') document.getElementById('btn-shape-s')?.classList.add('active');
+      if (shape === 'O') document.getElementById('btn-shape-o')?.classList.add('active');
+    };
+
+    document.getElementById('btn-shape-i')?.addEventListener('click', () => setShape('I'));
+    document.getElementById('btn-shape-s')?.addEventListener('click', () => setShape('S'));
+    document.getElementById('btn-shape-o')?.addEventListener('click', () => setShape('O'));
+
+    const setSize = (size: WorldSize) => {
+      this.selectedSize = size;
+      document.querySelectorAll('.size-btn').forEach(btn => btn.classList.remove('active'));
+
+      if (size === 'S') document.getElementById('btn-size-s')?.classList.add('active');
+      if (size === 'M') document.getElementById('btn-size-m')?.classList.add('active');
+      if (size === 'L') document.getElementById('btn-size-l')?.classList.add('active');
+    };
+
+    document.getElementById('btn-size-s')?.addEventListener('click', () => setSize('S'));
+    document.getElementById('btn-size-m')?.addEventListener('click', () => setSize('M'));
+    document.getElementById('btn-size-l')?.addEventListener('click', () => setSize('L'));
+
+    this.btnWorldRegenerateEl?.addEventListener('click', () => {
+      this.worldConfigCardEl.classList.add('hidden');
+      this.onRegenerateShape?.(this.selectedShape, this.selectedSize);
     });
 
     const setType = (type: TrainType) => {
@@ -262,8 +333,15 @@ export class HUD {
         return;
       }
 
+      if (e.code === 'KeyT') {
+        this.trainConfigCardEl.classList.toggle('hidden');
+        return;
+      }
+
       if (e.code === 'Escape') {
         this.closeControlsModal();
+        this.trainConfigCardEl.classList.add('hidden');
+        this.worldConfigCardEl.classList.add('hidden');
         this.dropdownMenuEl.classList.add('hidden');
         return;
       }
@@ -277,6 +355,12 @@ export class HUD {
       if (e.code === 'KeyC') {
         const pt = this.trackNet.getPointAtDistance(this.train.trackId, this.train.distance);
         this.camera.resetToTrain(pt.x, pt.y);
+      }
+
+      if (e.code === 'KeyG') {
+        this.worldConfigCardEl.classList.add('hidden');
+        this.dropdownMenuEl.classList.add('hidden');
+        this.onRegenerateShape?.(this.selectedShape, this.selectedSize);
       }
 
       if (e.code === 'KeyX') {
@@ -395,6 +479,35 @@ export class HUD {
     this.dropdownMenuEl.classList.add('hidden');
   }
 
+  public resetForWorld(train: Train, stationMgr: StationManager, signalMgr: SignalManager, trackNet: TrackNetwork): void {
+    this.train = train;
+    this.stationMgr = stationMgr;
+    this.signalMgr = signalMgr;
+    this.trackNet = trackNet;
+    this.selectedShape = trackNet.shape;
+    this.selectedSize = trackNet.size;
+
+    document.querySelectorAll('.shape-btn').forEach(btn => btn.classList.remove('active'));
+    if (trackNet.shape === 'I') document.getElementById('btn-shape-i')?.classList.add('active');
+    if (trackNet.shape === 'S') document.getElementById('btn-shape-s')?.classList.add('active');
+    if (trackNet.shape === 'O') document.getElementById('btn-shape-o')?.classList.add('active');
+
+    document.querySelectorAll('.size-btn').forEach(btn => btn.classList.remove('active'));
+    if (trackNet.size === 'S') document.getElementById('btn-size-s')?.classList.add('active');
+    if (trackNet.size === 'M') document.getElementById('btn-size-m')?.classList.add('active');
+    if (trackNet.size === 'L') document.getElementById('btn-size-l')?.classList.add('active');
+
+    const pt = this.trackNet.getStaticPointAtDistance(this.train.trackId, this.train.distance);
+    this.camera.resetToTrain(pt.x, pt.y);
+
+    this.clearAlert();
+    this.updateLeverHandles();
+    this.updateConsistDisplay();
+    this.setReverser(1);
+    this.dropdownMenuEl.classList.add('hidden');
+    this.worldConfigCardEl?.classList.add('hidden');
+  }
+
   private attemptResetAlert(): void {
     if (this.train.isCrashed) {
       this.respawnTrain();
@@ -418,6 +531,18 @@ export class HUD {
 
   public setReverser(pos: 1 | 0 | -1): void {
     if (this.train.isEmergencyBrakeLocked) return;
+
+    if (this.train.reverser !== pos && (this.train.speedKmH !== 0 || Math.abs(this.train.speed) > 0.05)) {
+      this.triggerAlert({
+        type: 'info',
+        title: 'Reverser interlock active',
+        message: `Cannot change direction while in motion (${this.train.speedKmH} km/h). Train must be at a complete standstill.`,
+        canReset: true
+      });
+
+      setTimeout(() => this.clearAlert(), 3000);
+      return;
+    }
 
     this.train.reverser = pos;
     document.querySelectorAll('.rev-btn').forEach(btn => btn.classList.remove('active'));
@@ -510,6 +635,8 @@ export class HUD {
         aspectLabel = 'Hp 0 (Stop)';
       } else if (nextSig.signal.aspect === 'yellow') {
         aspectLabel = 'Vr 0 (Expect Stop)';
+      } else if (nextSig.signal.aspect === 'dark') {
+        aspectLabel = 'Vr (Dark / Inactive)';
       } else if (nextSig.signal.type === 'secondary') {
         aspectLabel = 'Vr 1 (Expect Clear)';
       }
@@ -524,6 +651,8 @@ export class HUD {
         color = '#f59e0b';
       } else if (nextSig.signal.aspect === 'red') {
         color = '#ef4444';
+      } else if (nextSig.signal.aspect === 'dark') {
+        color = '#71717a';
       }
 
       this.signalDotEl.style.backgroundColor = color;

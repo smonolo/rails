@@ -182,10 +182,14 @@ export class Train {
     }
 
     if (trackNet) {
-      const activeTrackLen = trackNet.tracks[this.trackId]?.totalLength;
+      const activeTrack = trackNet.tracks[this.trackId];
 
-      if (activeTrackLen && this.trackId !== 2) {
-        this.distance = ((this.distance % activeTrackLen) + activeTrackLen) % activeTrackLen;
+      if (activeTrack) {
+        if (activeTrack.isClosed) {
+          this.distance = ((this.distance % activeTrack.totalLength) + activeTrack.totalLength) % activeTrack.totalLength;
+        } else {
+          this.distance = Math.max(15, Math.min(activeTrack.totalLength - 15, this.distance));
+        }
       }
     }
 
@@ -207,7 +211,14 @@ export class Train {
     this.facing = this.trackId === 0 ? 1 : -1;
     const currentTrack = trackNet.tracks[this.trackId];
 
-    this.distance = Math.random() * currentTrack.totalLength;
+    if (currentTrack) {
+      if (currentTrack.isClosed) {
+        this.distance = Math.random() * currentTrack.totalLength;
+      } else {
+        const margin = Math.min(1100, currentTrack.totalLength * 0.25);
+        this.distance = margin + Math.random() * (currentTrack.totalLength - 2 * margin);
+      }
+    }
     this.speed = 0;
     this.throttle = 0;
     this.targetThrottle = 0;
@@ -360,19 +371,25 @@ export class Train {
       }
     }
 
-    const activeTrackLen = trackNet.tracks[this.trackId].totalLength;
+    const activeTrack = trackNet.tracks[this.trackId];
+    const activeTrackLen = activeTrack.totalLength;
 
-    if (this.trackId === 2) {
-      const bufferStopDist = activeTrackLen - 12;
+    if (!activeTrack.isClosed) {
+      const bufferStopEnd = activeTrackLen - 12;
+      const bufferStopStart = 12;
 
-      if (this.distance >= bufferStopDist) {
-        this.distance = bufferStopDist;
+      if (this.distance >= bufferStopEnd) {
+        this.distance = bufferStopEnd;
 
         if (!this.isCrashed) {
           this.crash('Collision with buffer stop at terminal dead track');
         }
-      } else if (this.distance < 0) {
-        this.distance = 0;
+      } else if (this.distance <= bufferStopStart) {
+        this.distance = bufferStopStart;
+
+        if (!this.isCrashed) {
+          this.crash('Collision with buffer stop at terminal dead track');
+        }
       }
     } else {
       this.distance = ((this.distance % activeTrackLen) + activeTrackLen) % activeTrackLen;
@@ -441,7 +458,7 @@ export class Train {
     const totalLen = currentTrack.totalLength;
     let carrDist = this.facing === 1 ? this.distance - offset : this.distance + offset;
 
-    if (this.trackId === 2) {
+    if (!currentTrack.isClosed) {
       carrDist = Math.max(0, Math.min(totalLen, carrDist));
     } else {
       carrDist = ((carrDist % totalLen) + totalLen) % totalLen;

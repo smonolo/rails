@@ -12,9 +12,19 @@ export interface TrackPoint {
   normalY: number;
 }
 
+export interface TrackData {
+  points: TrackPoint[];
+  totalLength: number;
+  isClosed: boolean;
+}
+
+export type WorldShape = 'I' | 'S' | 'O';
+
+export type WorldSize = 'S' | 'M' | 'L';
+
 export type SignalType = 'primary' | 'secondary';
 
-export type SignalAspect = 'red' | 'yellow' | 'green';
+export type SignalAspect = 'red' | 'yellow' | 'green' | 'dark';
 
 export interface Signal {
   id: string;
