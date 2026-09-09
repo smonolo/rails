@@ -1,5 +1,6 @@
-import type { Signal, Block, SignalAspect } from './types.ts';
+import type { Signal, Block, SignalAspect } from '../types.ts';
 import { TrackNetwork } from './track.ts';
+import { wrap, shortestLoopDelta, distance } from '../utils/math.ts';
 
 export class SignalManager {
   public signals: Signal[] = [];
@@ -34,11 +35,11 @@ export class SignalManager {
 
         for (let i = 0; i < numBlocks; i++) {
           const boundaryDist = Math.round(i * blockLen);
-          const fwdPrimDist = Math.round((boundaryDist + 18) % totalLen);
-          const revPrimDist = Math.round((boundaryDist - 18 + totalLen) % totalLen);
+          const fwdPrimDist = Math.round(wrap(boundaryDist + 18, totalLen));
+          const revPrimDist = Math.round(wrap(boundaryDist - 18, totalLen));
 
-          const fwdSecDist = Math.round((fwdPrimDist - 800 + totalLen) % totalLen);
-          const revSecDist = Math.round((revPrimDist + 800) % totalLen);
+          const fwdSecDist = Math.round(wrap(fwdPrimDist - 800, totalLen));
+          const revSecDist = Math.round(wrap(revPrimDist + 800, totalLen));
 
           const fwdPrimId = `sig-hp-t${trackId}-fwd-b${i + 1}`;
           const revPrimId = `sig-hp-t${trackId}-rev-b${i + 1}`;
@@ -221,14 +222,13 @@ export class SignalManager {
     blockEnd: number,
     trackLength: number
   ): boolean {
-    const normalize = (dist: number) => ((dist % trackLength) + trackLength) % trackLength;
-    const bs = normalize(blockStart);
-    let be = normalize(blockEnd);
+    const bs = wrap(blockStart, trackLength);
+    let be = wrap(blockEnd, trackLength);
 
     if (be <= bs) be += trackLength;
 
-    const s = normalize(trainStart);
-    const e = normalize(trainEnd);
+    const s = wrap(trainStart, trackLength);
+    const e = wrap(trainEnd, trackLength);
 
     const spans: [number, number][] = [];
 
@@ -288,17 +288,12 @@ export class SignalManager {
     let spadSigName = '';
 
     if (this.prevTrainTrackId === trainTrackId && this.trainHasMoved) {
-      let delta = trainHeadDist - this.prevTrainHeadDist;
-
-      if (delta < -trackLen / 2) delta += trackLen;
-      else if (delta > trackLen / 2) delta -= trackLen;
+      const delta = shortestLoopDelta(this.prevTrainHeadDist, trainHeadDist, trackLen);
 
       if (delta > 0.001 && activeDir === 1) {
         for (const sig of this.signals) {
           if (sig.trackId === trainTrackId && sig.type === 'primary' && sig.direction === 1) {
-            let distToSig = (sig.distance - this.prevTrainHeadDist) % trackLen;
-
-            if (distToSig < 0) distToSig += trackLen;
+            const distToSig = wrap(sig.distance - this.prevTrainHeadDist, trackLen);
 
             if (distToSig <= delta && sig.aspect === 'red') {
               spadOccurred = true;
@@ -312,9 +307,7 @@ export class SignalManager {
 
         for (const sig of this.signals) {
           if (sig.trackId === trainTrackId && sig.type === 'primary' && sig.direction === -1) {
-            let distToSig = (this.prevTrainHeadDist - sig.distance) % trackLen;
-
-            if (distToSig < 0) distToSig += trackLen;
+            const distToSig = wrap(this.prevTrainHeadDist - sig.distance, trackLen);
 
             if (distToSig <= absDelta && sig.aspect === 'red') {
               spadOccurred = true;
@@ -412,7 +405,7 @@ export class SignalManager {
 
     for (const sig of this.signals) {
       if (sig.worldX !== undefined && sig.worldY !== undefined) {
-        const d = Math.hypot(sig.worldX - worldX, sig.worldY - worldY);
+        const d = distance(sig.worldX, sig.worldY, worldX, worldY);
 
         if (d <= minDist) {
           minDist = d;
@@ -479,15 +472,9 @@ export class SignalManager {
       if (sig.trackId !== trackId) continue;
       if (sig.direction !== direction) continue;
 
-      let delta: number;
-
-      if (direction === 1) {
-        delta = (sig.distance - trainDist) % trackLength;
-        if (delta < 0) delta += trackLength;
-      } else {
-        delta = (trainDist - sig.distance) % trackLength;
-        if (delta < 0) delta += trackLength;
-      }
+      const delta = direction === 1
+        ? wrap(sig.distance - trainDist, trackLength)
+        : wrap(trainDist - sig.distance, trackLength);
 
       if (delta > 0 && delta < minDistance) {
         minDistance = delta;

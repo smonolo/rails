@@ -32,18 +32,14 @@
 
     <div id="hud-overlay">
       <div class="hud-top-row">
-        <div class="hud-panel hud-telemetry">
-          <div class="speed-box">
-            <span class="speed-num" id="hud-speed-num">0</span>
-            <span class="speed-unit">km/h</span>
-            <span class="g-meter" id="hud-g-meter">0.00 G</span>
-          </div>
-          <div class="station-status-box" id="hud-station-info">
-            <span class="status-primary">Calculating next station...</span>
-          </div>
-          <div class="signal-status-box">
+        <div class="hud-track-bar" id="hud-track-bar">
+          <div class="track-status-item signal-status-box">
             <div class="signal-dot" id="hud-signal-dot"></div>
             <span id="hud-signal-info">Signals active</span>
+          </div>
+          <div class="track-status-sep"></div>
+          <div class="track-status-item station-status-box" id="hud-station-info">
+            <span class="status-primary">Calculating next station...</span>
           </div>
         </div>
 
@@ -70,10 +66,10 @@
 
       <div class="hud-bottom-row">
         <div class="bottom-left-stack">
-          <div class="hud-panel train-config-card hidden" id="train-config-card">
+          <div class="hud-floating-card train-config-card hidden" id="train-config-card">
             <div class="card-header">
               <span class="card-title">Train Configuration</span>
-              <button class="modal-close-btn" id="btn-close-train-config" title="Close" aria-label="Close">x</button>
+              <button class="modal-close-btn" id="btn-close-train-config" title="Close" aria-label="Close">✕</button>
             </div>
             <div class="type-selector-group">
               <button class="type-btn active" id="btn-type-regional" data-type="regional">Regional</button>
@@ -95,10 +91,10 @@
             </div>
           </div>
 
-          <div class="hud-panel world-config-card hidden" id="world-config-card">
+          <div class="hud-floating-card world-config-card hidden" id="world-config-card">
             <div class="card-header">
               <span class="card-title">World Configuration</span>
-              <button class="modal-close-btn" id="btn-close-world-config" title="Close" aria-label="Close">x</button>
+              <button class="modal-close-btn" id="btn-close-world-config" title="Close" aria-label="Close">✕</button>
             </div>
             <div class="config-section-label">Shape</div>
             <div class="shape-selector-group">
@@ -116,47 +112,63 @@
           </div>
 
           <div class="bottom-left-buttons">
-            <button class="hud-btn btn-config-toggle" id="btn-toggle-train-config" title="Train configuration (T)">
-              <span>Train config</span>
+            <button class="hud-pill-btn" id="btn-toggle-train-config" title="Train configuration (T)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="4" y="3" width="16" height="16" rx="2" />
+                <path d="M4 11h16" />
+                <path d="M12 3v8" />
+                <path d="M8 19l-2 3" />
+                <path d="M16 19l2 3" />
+              </svg>
+              <span>Train</span>
             </button>
-            <button class="hud-btn btn-config-toggle" id="btn-toggle-world-config" title="World configuration">
-              <span>World config</span>
+            <button class="hud-pill-btn" id="btn-toggle-world-config" title="World configuration">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="2" y1="12" x2="22" y2="12" />
+                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+              </svg>
+              <span>World</span>
             </button>
           </div>
         </div>
 
-        <div class="driver-stack">
-          <div class="hud-panel eb-card">
-            <button class="btn-eb" id="btn-eb" title="Trip emergency brake (X)">Emergency brake</button>
+        <div class="driver-console" id="driver-console">
+          <div class="cab-telemetry">
+            <div class="speed-box">
+              <span class="speed-num" id="hud-speed-num">0</span>
+              <span class="speed-unit">km/h</span>
+            </div>
           </div>
 
-          <div class="hud-panel driver-console">
+          <div class="cab-controls-row">
             <div class="reverser-group">
               <button class="rev-btn active" id="btn-fwd">Fwd</button>
               <button class="rev-btn" id="btn-neu">Neu</button>
               <button class="rev-btn" id="btn-rev">Rev</button>
             </div>
+            <button class="btn-eb" id="btn-eb" title="Trip emergency brake (X)">EB</button>
+          </div>
 
-            <div class="levers-container">
-              <div class="lever-col">
-                <span class="lever-label">Throttle</span>
-                <div class="lever-track-wrapper" id="throttle-track">
-                  <div class="lever-fill throttle-fill" id="throttle-bar-fill"></div>
-                  <div class="lever-handle" id="throttle-handle"></div>
-                </div>
-                <span class="lever-value" id="throttle-val">0%</span>
-                <span class="lever-key-hint">W/S</span>
+          <div class="levers-container">
+            <div class="lever-col">
+              <span class="lever-label">Throttle</span>
+              <div class="lever-track-wrapper" id="throttle-track">
+                <div class="lever-fill throttle-fill" id="throttle-bar-fill"></div>
+                <div class="lever-handle" id="throttle-handle"></div>
               </div>
+              <span class="lever-value" id="throttle-val">0%</span>
+              <span class="lever-key-hint">W/S</span>
+            </div>
 
-              <div class="lever-col">
-                <span class="lever-label">Brake</span>
-                <div class="lever-track-wrapper" id="brake-track">
-                  <div class="lever-fill brake-fill" id="brake-bar-fill"></div>
-                  <div class="lever-handle" id="brake-handle"></div>
-                </div>
-                <span class="lever-value" id="brake-val">0%</span>
-                <span class="lever-key-hint">Space</span>
+            <div class="lever-col">
+              <span class="lever-label">Brake</span>
+              <div class="lever-track-wrapper" id="brake-track">
+                <div class="lever-fill brake-fill" id="brake-bar-fill"></div>
+                <div class="lever-handle" id="brake-handle"></div>
               </div>
+              <span class="lever-value" id="brake-val">0%</span>
+              <span class="lever-key-hint">Space</span>
             </div>
           </div>
         </div>

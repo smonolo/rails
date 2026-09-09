@@ -77,10 +77,10 @@ html, body {
 
 .hud-panel {
   pointer-events: auto;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  padding: 16px 18px;
+  background: rgba(18, 18, 22, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 14px 16px;
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
 }
@@ -88,91 +88,76 @@ html, body {
 .hud-top-row {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
+  position: relative;
+  width: 100%;
 }
 
-.hud-telemetry {
+.hud-track-bar {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
-  flex-direction: column;
-  gap: 10px;
-  width: 280px;
-  min-width: 280px;
-  max-width: 280px;
-}
-
-.speed-box {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-}
-
-.speed-num {
-  font-family: var(--font-mono);
-  font-size: 46px;
-  font-weight: 700;
-  letter-spacing: -1.5px;
-  line-height: 1;
-  font-variant-numeric: tabular-nums;
-  color: var(--color-sm-white);
-}
-
-.speed-unit {
-  font-family: var(--font-mono);
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--color-neutral-400);
-  letter-spacing: 0.5px;
-}
-
-.g-meter {
-  margin-left: auto;
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--color-neutral-400);
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 4px;
-  padding: 2px 6px;
-  transition: color 0.15s ease, border-color 0.15s ease;
-}
-
-.g-meter.warn {
-  color: #f59e0b;
-  border-color: rgba(245, 158, 11, 0.4);
-}
-
-.g-meter.danger {
-  color: #ef4444;
-  border-color: rgba(239, 68, 68, 0.6);
-}
-
-.rev-indicator {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.5px;
-  color: var(--color-neutral-300);
-  display: inline-block;
-  padding: 4px 8px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid var(--color-border);
-  border-radius: 6px;
-  width: fit-content;
+  align-items: center;
+  gap: 12px;
+  background: rgba(18, 18, 22, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 24px;
+  padding: 8px 18px;
+  pointer-events: auto;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+  max-width: calc(100vw - 160px);
   white-space: nowrap;
 }
 
-.station-status-box {
+.track-status-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-family: var(--font-body);
   font-size: 12px;
   font-weight: 500;
-  line-height: 1.4;
-  border-top: 1px solid var(--color-border-subtle);
-  padding-top: 8px;
+  color: var(--color-sm-white);
+  border: none;
+  padding: 0;
+}
+
+.track-status-item br {
+  display: none;
+}
+
+.track-status-item .sub {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--color-neutral-400);
+  margin-left: 2px;
+}
+
+.track-status-sep {
+  width: 1px;
+  height: 14px;
+  background: rgba(255, 255, 255, 0.12);
+  flex-shrink: 0;
+}
+
+.station-status-box {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 500;
   color: var(--color-sm-white);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.station-status-box br {
+  display: none;
 }
 
 .station-status-box .sub {
@@ -180,6 +165,7 @@ html, body {
   font-weight: 400;
   color: var(--color-neutral-400);
   letter-spacing: 0.2px;
+  margin-left: 2px;
 }
 
 .badge-active {
@@ -199,8 +185,6 @@ html, body {
   font-family: var(--font-body);
   font-size: 12px;
   font-weight: 500;
-  border-top: 1px solid var(--color-border-subtle);
-  padding-top: 8px;
   color: var(--color-neutral-300);
   white-space: nowrap;
   overflow: hidden;
@@ -222,20 +206,23 @@ html, body {
   align-items: center;
   gap: 8px;
   pointer-events: auto;
+  margin-left: auto;
 }
 
 .hud-btn {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: 6px;
+  background: rgba(18, 18, 22, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
   color: var(--color-sm-white);
   cursor: pointer;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   transition: background-color 0.15s ease, border-color 0.15s ease;
 }
 
 .hud-btn:hover {
   background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.25);
 }
 
 .top-action-btn {
@@ -245,6 +232,7 @@ html, body {
   align-items: center;
   justify-content: center;
   padding: 0;
+  border-radius: 50%;
 }
 
 .top-btn-icon {
@@ -255,7 +243,7 @@ html, body {
 
 #warning-banner {
   position: absolute;
-  top: 24px;
+  top: 60px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
@@ -340,20 +328,39 @@ html, body {
   pointer-events: auto;
 }
 
-.btn-config-toggle {
+.hud-pill-btn {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 14px;
+  gap: 6px;
+  padding: 7px 14px;
+  background: rgba(18, 18, 22, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  color: var(--color-sm-white);
   font-family: var(--font-body);
   font-size: 12px;
   font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
   pointer-events: auto;
 }
 
-.btn-config-icon {
-  font-size: 13px;
-  color: var(--color-neutral-300);
+.hud-pill-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.22);
+}
+
+.hud-floating-card {
+  background: rgba(18, 18, 22, 0.88);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  padding: 14px 16px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+  pointer-events: auto;
 }
 
 .train-config-card {
@@ -361,7 +368,6 @@ html, body {
   flex-direction: column;
   gap: 10px;
   width: 220px;
-  padding: 14px 16px;
 }
 
 .card-header {
@@ -639,32 +645,71 @@ html, body {
   background: rgba(255, 255, 255, 0.22);
 }
 
-.driver-stack {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  align-items: flex-end;
-}
-
-.eb-card {
-  width: 220px;
-  padding: 10px 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
 .driver-console {
   display: flex;
   flex-direction: column;
   gap: 12px;
   align-items: center;
-  width: 220px;
-  padding: 14px 16px;
+  width: 200px;
+  padding: 14px 16px 14px;
+  background: rgba(18, 18, 22, 0.82);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+  pointer-events: auto;
+}
+
+.cab-telemetry {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  width: 100%;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.speed-box {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+}
+
+.speed-num {
+  font-family: var(--font-mono);
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-sm-white);
+}
+
+.speed-unit {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-neutral-400);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.cab-controls-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.cab-controls-row .reverser-group {
+  flex: 1;
 }
 
 .reverser-group {
   display: flex;
+  height: 30px;
+  box-sizing: border-box;
   width: 100%;
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid var(--color-border);
@@ -675,9 +720,10 @@ html, body {
 
 .rev-btn {
   flex: 1;
+  height: 100%;
   border: none;
   background: transparent;
-  padding: 5px 8px;
+  padding: 0 6px;
   font-family: var(--font-mono);
   font-size: 11px;
   font-weight: 600;
@@ -685,6 +731,9 @@ html, body {
   cursor: pointer;
   border-radius: 4px;
   transition: background-color 0.12s ease, color 0.12s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .rev-btn:hover {
@@ -799,21 +848,23 @@ html, body {
 }
 
 .btn-eb {
-  width: 100%;
-  padding: 8px 14px;
+  height: 30px;
+  box-sizing: border-box;
+  padding: 0 12px;
   background: #dc2626;
   border: 1px solid #ef4444;
   color: #ffffff;
   border-radius: 6px;
-  font-family: var(--font-sans);
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.3px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 .btn-eb:hover {
@@ -823,6 +874,7 @@ html, body {
 
 .btn-eb:active {
   background: #b91c1c;
+  border-color: #dc2626;
 }
 
 .modal-backdrop {
@@ -1006,31 +1058,29 @@ html, body {
     padding: 12px;
   }
 
-  .hud-panel {
-    padding: 10px 12px;
-    border-radius: 6px;
+  .hud-track-bar {
+    top: 8px;
+    padding: 6px 12px;
+    max-width: calc(100vw - 110px);
+    gap: 8px;
   }
 
-  .hud-telemetry {
-    width: auto;
-    min-width: 0;
-    max-width: calc(100vw - 64px);
-    gap: 6px;
-  }
-
-  .speed-num {
-    font-size: 32px;
-    letter-spacing: -1px;
-  }
-
-  .station-status-box {
+  .track-status-item {
     font-size: 11px;
-    padding-top: 6px;
+    gap: 6px;
   }
 
   .signal-status-box {
     font-size: 11px;
-    padding-top: 6px;
+  }
+
+  .station-status-box {
+    font-size: 11px;
+  }
+
+  .speed-num {
+    font-size: 22px;
+    letter-spacing: -0.5px;
   }
 
   .hud-bottom-row {
@@ -1074,23 +1124,9 @@ html, body {
     height: 20px;
   }
 
-  .driver-stack {
-    gap: 6px;
-  }
-
-  .eb-card {
-    width: 156px;
-    padding: 6px 8px;
-  }
-
-  .btn-eb {
-    padding: 6px 8px;
-    font-size: 11px;
-  }
-
   .driver-console {
     width: 156px;
-    padding: 8px 10px;
+    padding: 10px 10px 8px;
     gap: 8px;
   }
 
@@ -1112,7 +1148,7 @@ html, body {
   }
 
   #warning-banner {
-    top: 12px;
+    top: 48px;
     min-width: 0;
     width: calc(100vw - 24px);
     padding: 8px 12px;
@@ -1131,12 +1167,14 @@ html, body {
     padding: 8px 14px;
   }
 
-  .hud-panel {
-    padding: 6px 10px;
+  .hud-track-bar {
+    top: 6px;
+    padding: 4px 10px;
+    font-size: 10px;
   }
 
   .speed-num {
-    font-size: 26px;
+    font-size: 22px;
   }
 
   .lever-track-wrapper {
@@ -1153,11 +1191,6 @@ html, body {
     width: 145px;
     padding: 6px 8px;
     gap: 6px;
-  }
-
-  .eb-card {
-    width: 145px;
-    padding: 4px 8px;
   }
 }
 

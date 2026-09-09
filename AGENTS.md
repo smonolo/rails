@@ -8,15 +8,21 @@ Developer and AI agent guidelines for working on the `rails` repository.
 
 `Rails` is a high-performance, minimalist 2D railway simulator built on pure TypeScript and the HTML5 Canvas API without external physics engines or heavy frontend frameworks.
 
-### Core Modules
+### Architecture & Modules
 - **`src/main.ts`**: Game loop entry point (`requestAnimationFrame`), input aggregation, camera viewport orchestration, high-level event handling.
-- **`src/train.ts`**: Train physics engine, consist tracking, speed/tractive force curves, braking simulation, lateral G and derailment calculations, canvas rendering.
-- **`src/track.ts`**: Catmull-Rom spline curves, arc-length distance parameterization, junction switches, crossover transition zones, switch occupancy interlocking.
-- **`src/signals.ts`**: German H/V block signaling system, *Gleiswechselbetrieb* (GWB) bidirectional track logic, SPAD detection, aspect synchronization, canvas rendering.
-- **`src/stations.ts`**: Platform waypoints, passenger dwell timers, dispatching state machine.
-- **`src/scenery.ts`**: Overhead catenary masts and contact wires, level crossings with safety barriers, roads, buildings, and vegetation.
-- **`src/camera.ts`**: Viewport transformation, smooth following, screen-to-world unprojection, pinch-to-zoom, touch panning.
-- **`src/hud.ts`**: DOM-based UI overlay, throttle and brake levers, telemetry, warning alerts, mobile action drawer.
+- **`src/core/` (Simulation & Domain)**:
+  - **`track.ts`**: Catmull-Rom spline curves, arc-length distance parameterization, junction switches, crossover transition zones, switch occupancy interlocking.
+  - **`train.ts`**: Train physics engine, consist tracking, speed/tractive force curves, braking simulation, lateral G and derailment calculations, canvas rendering.
+  - **`signals.ts`**: German H/V block signaling system, *Gleiswechselbetrieb* (GWB) bidirectional track logic, SPAD detection, aspect synchronization, canvas rendering.
+  - **`stations.ts`**: Platform waypoints, passenger dwell timers, dispatching state machine.
+  - **`scenery.ts`**: Overhead catenary masts and contact wires, level crossings with safety barriers, roads, buildings, and vegetation.
+- **`src/ui/` (Presentation & Viewport)**:
+  - **`camera.ts`**: Viewport transformation, smooth following, screen-to-world unprojection, pinch-to-zoom, touch panning.
+  - **`hud.ts`**: DOM-based UI overlay, throttle and brake levers, telemetry, warning alerts, interactive dialogs.
+- **`src/utils/` (Shared Helpers)**:
+  - **`math.ts`**: Math primitives (clamping, wrapping, angular difference, interpolation, Catmull-Rom sampling, binary search).
+  - **`config.ts`**: World configuration state persistence (`localStorage` & URL query params).
+  - **`prng.ts`**: Seedable pseudo-random number generator (Mulberry32 / FNV-1a).
 - **`src/types.ts`**: Canonical TypeScript interfaces, enums, and types.
 
 ---

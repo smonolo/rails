@@ -75,47 +75,29 @@ npx tsc --noEmit
 ### Desktop Keyboard
 | Key | Action |
 | --- | --- |
-| `W` / `Arrow Up` | Increase throttle |
-| `S` / `Arrow Down` | Decrease throttle |
-| `A` / `Arrow Left` | Release brakes |
-| `D` / `Arrow Right` | Apply service brakes |
-| `R` | Set reverser forward |
-| `F` | Set reverser reverse |
-| `Space` | Emergency brake |
-| `Click on switch` | Toggle turnout straight / diverging |
-| `Click on signal` | Manually toggle signal aspect (Hp 0 / Hp 1) |
+| `W` / `Arrow Up` | Increase throttle (+1%) |
+| `S` / `Arrow Down` | Decrease throttle (-1%) |
+| `Space` / `B` | Apply service brake (+1%) |
+| `V` | Release service brake (-1%) |
+| `X` | Emergency brake (trip / reset at standstill) |
+| `F` / `N` / `R` | Reverser (Forward / Neutral / Reverse) |
+| `C` | Center camera view on locomotive |
+| `T` | Toggle train configuration panel |
+| `G` | Regenerate world |
+| `H` | Controls and operation help |
+| `Click on switch` | Toggle turnout route (straight / diverging) |
+| `Click on signal` | Toggle signal aspect (Hp 0 / Hp 1) |
 | `Mouse Drag` | Pan camera view |
 | `Mouse Wheel` | Zoom in / out |
 
 ### Touch & Mobile
-- **Interactive Levers**: On-screen throttle and brake sliders.
-- **Gestures**: Single-finger drag to pan, pinch to zoom, single-tap to toggle switches and signals.
-- **HUD Panel**: Mobile-friendly dropdown for train type, carriage count, train inversion, and respawn.
-
----
-
-## Project Structure
-
-```
-rails/
-├── index.html          # HTML shell and responsive layout
-├── package.json        # Dependencies and scripts
-├── tsconfig.json       # TypeScript compiler configuration
-└── src/
-    ├── main.ts         # Main game loop, canvas orchestration, input dispatch
-    ├── train.ts        # Train physics, consists, aerodynamics, rendering
-    ├── track.ts        # Track geometry, Catmull-Rom splines, turnout junctions
-    ├── signals.ts      # H/V block signaling, GWB bidirectional logic, SPAD
-    ├── stations.ts     # Station platforms, dwelling logic, timetable
-    ├── scenery.ts      # Catenary masts, roads, crossings, vegetation, props
-    ├── camera.ts       # Smooth tracking camera, world transformations, zoom
-    ├── hud.ts          # DOM HUD overlay, control levers, telemetry, alerts
-    ├── types.ts        # Data structures and shared TypeScript interfaces
-    └── style.css       # Clean dark-mode stylesheet
-```
+- **Interactive Levers**: On-screen throttle and brake sliders with pointer dragging.
+- **Gestures**: Single-finger drag to pan, pinch to zoom, single-tap on world elements to toggle switches and signals.
+- **HUD Panel**: Accessible floating panels for train configuration, world layout, and camera recentering.
 
 ---
 
 ## License
 
 MIT License.
+

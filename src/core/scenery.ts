@@ -1,6 +1,7 @@
-import type { Point2D, Station } from './types.ts';
+import type { Point2D, Station } from '../types.ts';
 import { TrackNetwork } from './track.ts';
-import { PRNG } from './prng.ts';
+import { PRNG } from '../utils/prng.ts';
+import { distance } from '../utils/math.ts';
 
 interface RoadSegment {
   points: Point2D[];
@@ -75,7 +76,7 @@ export class SceneryManager {
 
       for (let i = 0; i < track.points.length; i += step) {
         const pt = track.points[i];
-        const dist = Math.hypot(pt.x - x, pt.y - y);
+        const dist = distance(pt.x, pt.y, x, y);
 
         if (dist < minDist) {
           minDist = dist;
@@ -449,7 +450,7 @@ export class SceneryManager {
       ctx.beginPath();
 
       for (let i = 0; i < masts.length - 1; i++) {
-        const segDist = Math.hypot(masts[i + 1].wireX - masts[i].wireX, masts[i + 1].wireY - masts[i].wireY);
+        const segDist = distance(masts[i].wireX, masts[i].wireY, masts[i + 1].wireX, masts[i + 1].wireY);
 
         if (segDist < 180) {
           ctx.moveTo(masts[i].wireX, masts[i].wireY);
@@ -460,7 +461,7 @@ export class SceneryManager {
       if (this.isClosed && masts.length > 2) {
         const last = masts[masts.length - 1];
         const first = masts[0];
-        const closingDist = Math.hypot(first.wireX - last.wireX, first.wireY - last.wireY);
+        const closingDist = distance(last.wireX, last.wireY, first.wireX, first.wireY);
 
         if (closingDist < 180) {
           ctx.moveTo(last.wireX, last.wireY);

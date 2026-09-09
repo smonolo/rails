@@ -1,12 +1,14 @@
 import './style.css';
-import { TrackNetwork } from './track.ts';
-import { Train } from './train.ts';
-import { SignalManager } from './signals.ts';
-import { StationManager } from './stations.ts';
-import { SceneryManager } from './scenery.ts';
-import { Camera, type WorldBounds } from './camera.ts';
-import { HUD } from './hud.ts';
-import type { WorldShape, WorldSize } from './types.ts';
+import { TrackNetwork } from './core/track.ts';
+import { Train } from './core/train.ts';
+import { SignalManager } from './core/signals.ts';
+import { StationManager } from './core/stations.ts';
+import { SceneryManager } from './core/scenery.ts';
+import { Camera } from './ui/camera.ts';
+import { HUD } from './ui/hud.ts';
+import { loadWorldConfig, saveWorldConfig } from './utils/config.ts';
+import { distance } from './utils/math.ts';
+import type { WorldShape, WorldSize, WorldBounds } from './types.ts';
 
 class Game {
   private canvas: HTMLCanvasElement;
@@ -38,53 +40,12 @@ class Game {
     this.loadingOverlayEl = document.getElementById('loading-overlay');
     this.loadingSeedInfoEl = document.getElementById('loading-seed-info');
 
-    const urlParams = new URLSearchParams(window.location.search);
-    const urlSeed = urlParams.get('seed');
-    const urlShape = urlParams.get('shape') as WorldShape | null;
-    const urlSize = urlParams.get('size') as WorldSize | null;
-    const storedSeed = localStorage.getItem('rails_seed');
-    const storedShape = localStorage.getItem('rails_shape') as WorldShape | null;
-    const storedSize = localStorage.getItem('rails_size') as WorldSize | null;
+    const config = loadWorldConfig();
+    this.seed = config.seed;
+    this.currentShape = config.shape;
+    this.currentSize = config.size;
 
-    let initialSeed: number | string;
-
-    if (urlSeed && urlSeed.trim().length > 0) {
-      initialSeed = isNaN(Number(urlSeed)) ? urlSeed.trim() : Number(urlSeed);
-    } else if (storedSeed && storedSeed.trim().length > 0) {
-      initialSeed = isNaN(Number(storedSeed)) ? storedSeed.trim() : Number(storedSeed);
-    } else {
-      initialSeed = Math.floor(Math.random() * 900000) + 100000;
-    }
-
-    let initialShape: WorldShape = 'O';
-
-    if (urlShape && ['I', 'S', 'O'].includes(urlShape)) {
-      initialShape = urlShape;
-    } else if (storedShape && ['I', 'S', 'O'].includes(storedShape)) {
-      initialShape = storedShape;
-    }
-
-    let initialSize: WorldSize = 'M';
-
-    if (urlSize && ['S', 'M', 'L'].includes(urlSize)) {
-      initialSize = urlSize;
-    } else if (storedSize && ['S', 'M', 'L'].includes(storedSize)) {
-      initialSize = storedSize;
-    }
-
-    this.seed = initialSeed;
-    this.currentShape = initialShape;
-    this.currentSize = initialSize;
-
-    localStorage.setItem('rails_seed', String(initialSeed));
-    localStorage.setItem('rails_shape', initialShape);
-    localStorage.setItem('rails_size', initialSize);
-
-    const currentUrl = new URL(window.location.href);
-    currentUrl.searchParams.set('seed', String(initialSeed));
-    currentUrl.searchParams.set('shape', initialShape);
-    currentUrl.searchParams.set('size', initialSize);
-    window.history.replaceState({}, '', currentUrl.toString());
+    saveWorldConfig(config);
 
     this.trackNet = new TrackNetwork(this.seed, this.currentShape, this.currentSize);
     this.train = new Train(this.trackNet);
@@ -122,15 +83,7 @@ class Game {
     this.currentShape = nextShape;
     this.currentSize = nextSize;
 
-    localStorage.setItem('rails_seed', String(nextSeed));
-    localStorage.setItem('rails_shape', nextShape);
-    localStorage.setItem('rails_size', nextSize);
-
-    const currentUrl = new URL(window.location.href);
-    currentUrl.searchParams.set('seed', String(nextSeed));
-    currentUrl.searchParams.set('shape', nextShape);
-    currentUrl.searchParams.set('size', nextSize);
-    window.history.replaceState({}, '', currentUrl.toString());
+    saveWorldConfig({ seed: nextSeed, shape: nextShape, size: nextSize });
 
     if (this.loadingOverlayEl && this.loadingSeedInfoEl) {
       this.loadingSeedInfoEl.textContent = `Seed #${nextSeed} · Synthesizing ${nextShape}-shape (${nextSize}) layout...`;
@@ -198,7 +151,7 @@ class Game {
 
       for (const sig of this.signalMgr.signals) {
         if (sig.worldX !== undefined && sig.worldY !== undefined) {
-          if (Math.hypot(sig.worldX - world.x, sig.worldY - world.y) <= 18) {
+          if (distance(sig.worldX, sig.worldY, world.x, world.y) <= 18) {
             isOverSignal = true;
             break;
           }
@@ -219,7 +172,7 @@ class Game {
         return;
       }
 
-      const dragDist = Math.hypot(e.clientX - this.mouseDownPos.x, e.clientY - this.mouseDownPos.y);
+      const dragDist = distance(e.clientX, e.clientY, this.mouseDownPos.x, this.mouseDownPos.y);
 
       if (dragDist < 6) {
         const width = this.canvas.width / this.dpr;
@@ -257,7 +210,7 @@ class Game {
 
       if (e.changedTouches.length === 1 && this.camera.isDragging <= 1) {
         const touch = e.changedTouches[0];
-        const dist = Math.hypot(touch.clientX - this.touchStartPos.x, touch.clientY - this.touchStartPos.y);
+        const dist = distance(touch.clientX, touch.clientY, this.touchStartPos.x, this.touchStartPos.y);
         const elapsed = Date.now() - this.touchStartTime;
 
         if (dist < 18 && elapsed < 450) {

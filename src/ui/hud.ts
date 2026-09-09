@@ -1,9 +1,10 @@
-import { Train } from './train.ts';
-import { StationManager, type StationStatus } from './stations.ts';
-import { SignalManager } from './signals.ts';
-import { TrackNetwork } from './track.ts';
+import { Train } from '../core/train.ts';
+import { StationManager, type StationStatus } from '../core/stations.ts';
+import { SignalManager } from '../core/signals.ts';
+import { TrackNetwork } from '../core/track.ts';
 import { Camera } from './camera.ts';
-import type { WarningAlert, TrainType, WorldShape, WorldSize } from './types.ts';
+import { clamp } from '../utils/math.ts';
+import type { WarningAlert, TrainType, WorldShape, WorldSize } from '../types.ts';
 
 export class HUD {
   private train: Train;
@@ -16,7 +17,6 @@ export class HUD {
   public onRegenerateShape?: (shape: WorldShape, size: WorldSize) => void;
 
   private speedEl!: HTMLElement;
-  private gMeterEl!: HTMLElement;
   private stationInfoEl!: HTMLElement;
   private signalInfoEl!: HTMLElement;
   private signalDotEl!: HTMLElement;
@@ -74,7 +74,6 @@ export class HUD {
 
   private bindDom(): void {
     this.speedEl = document.getElementById('hud-speed-num')!;
-    this.gMeterEl = document.getElementById('hud-g-meter')!;
     this.stationInfoEl = document.getElementById('hud-station-info')!;
     this.signalInfoEl = document.getElementById('hud-signal-info')!;
     this.signalDotEl = document.getElementById('hud-signal-dot')!;
@@ -240,7 +239,7 @@ export class HUD {
       if (this.train.isEmergencyBrakeLocked) return;
 
       const rect = trackEl.getBoundingClientRect();
-      const clampedY = Math.max(rect.top, Math.min(rect.bottom, clientY));
+      const clampedY = clamp(clientY, rect.top, rect.bottom);
       const fraction = 1 - (clampedY - rect.top) / rect.height;
 
       setter(Math.round(fraction * 100) / 100);
@@ -365,13 +364,13 @@ export class HUD {
         }
 
         if (e.code === 'KeyW' || e.code === 'ArrowUp') {
-          this.train.targetThrottle = Math.min(1, +(this.train.targetThrottle + 0.01).toFixed(2));
+          this.train.targetThrottle = clamp(+(this.train.targetThrottle + 0.01).toFixed(2), 0, 1);
         } else if (e.code === 'KeyS' || e.code === 'ArrowDown') {
-          this.train.targetThrottle = Math.max(0, +(this.train.targetThrottle - 0.01).toFixed(2));
+          this.train.targetThrottle = clamp(+(this.train.targetThrottle - 0.01).toFixed(2), 0, 1);
         } else if (e.code === 'Space' || e.code === 'KeyB') {
-          this.train.targetBrake = Math.min(1, +(this.train.targetBrake + 0.01).toFixed(2));
+          this.train.targetBrake = clamp(+(this.train.targetBrake + 0.01).toFixed(2), 0, 1);
         } else if (e.code === 'KeyV') {
-          this.train.targetBrake = Math.max(0, +(this.train.targetBrake - 0.01).toFixed(2));
+          this.train.targetBrake = clamp(+(this.train.targetBrake - 0.01).toFixed(2), 0, 1);
         }
       }
     });
@@ -386,19 +385,19 @@ export class HUD {
       const fineStep = 0.01;
 
       if (keysPressed['KeyW'] || keysPressed['ArrowUp']) {
-        this.train.targetThrottle = Math.min(1, +(this.train.targetThrottle + fineStep).toFixed(2));
+        this.train.targetThrottle = clamp(+(this.train.targetThrottle + fineStep).toFixed(2), 0, 1);
       }
 
       if (keysPressed['KeyS'] || keysPressed['ArrowDown']) {
-        this.train.targetThrottle = Math.max(0, +(this.train.targetThrottle - fineStep).toFixed(2));
+        this.train.targetThrottle = clamp(+(this.train.targetThrottle - fineStep).toFixed(2), 0, 1);
       }
 
       if (keysPressed['Space'] || keysPressed['KeyB']) {
-        this.train.targetBrake = Math.min(1, +(this.train.targetBrake + fineStep).toFixed(2));
+        this.train.targetBrake = clamp(+(this.train.targetBrake + fineStep).toFixed(2), 0, 1);
       }
 
       if (keysPressed['KeyV']) {
-        this.train.targetBrake = Math.max(0, +(this.train.targetBrake - fineStep).toFixed(2));
+        this.train.targetBrake = clamp(+(this.train.targetBrake - fineStep).toFixed(2), 0, 1);
       }
     }, 40);
   }
@@ -541,19 +540,6 @@ export class HUD {
   public update(stationStatus: StationStatus): void {
     const speed = this.train.speedKmH;
     this.speedEl.textContent = `${speed}`;
-
-    const gVal = this.train.currentLateralG;
-    this.gMeterEl.textContent = `${gVal.toFixed(2)} G`;
-
-    const critG = +(this.train.criticalLateralAcc / 9.81).toFixed(2);
-
-    if (gVal >= critG * 0.8) {
-      this.gMeterEl.className = 'g-meter danger';
-    } else if (gVal >= critG * 0.55) {
-      this.gMeterEl.className = 'g-meter warn';
-    } else {
-      this.gMeterEl.className = 'g-meter';
-    }
 
     this.updateConsistDisplay();
 

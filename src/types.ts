@@ -90,3 +90,10 @@ export interface WarningAlert {
   message: string;
   canReset: boolean;
 }
+
+export interface WorldBounds {
+  minX: number;
+  maxX: number;
+  minY: number;
+  maxY: number;
+}

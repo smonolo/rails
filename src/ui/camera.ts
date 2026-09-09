@@ -1,9 +1,7 @@
-export interface WorldBounds {
-  minX: number;
-  maxX: number;
-  minY: number;
-  maxY: number;
-}
+import { clamp } from '../utils/math.ts';
+import type { WorldBounds } from '../types.ts';
+
+export type { WorldBounds };
 
 export class Camera {
   public x: number = 0;
@@ -47,8 +45,8 @@ export class Camera {
   }
 
   private clampTarget(): void {
-    this.targetX = Math.max(this.worldBounds.minX, Math.min(this.worldBounds.maxX, this.targetX));
-    this.targetY = Math.max(this.worldBounds.minY, Math.min(this.worldBounds.maxY, this.targetY));
+    this.targetX = clamp(this.targetX, this.worldBounds.minX, this.worldBounds.maxX);
+    this.targetY = clamp(this.targetY, this.worldBounds.minY, this.worldBounds.maxY);
   }
 
   public follow(tx: number, ty: number): void {
@@ -75,8 +73,8 @@ export class Camera {
     this.x += (this.targetX - this.x) * factor;
     this.y += (this.targetY - this.y) * factor;
 
-    this.x = Math.max(this.worldBounds.minX - 30, Math.min(this.worldBounds.maxX + 30, this.x));
-    this.y = Math.max(this.worldBounds.minY - 30, Math.min(this.worldBounds.maxY + 30, this.y));
+    this.x = clamp(this.x, this.worldBounds.minX - 30, this.worldBounds.maxX + 30);
+    this.y = clamp(this.y, this.worldBounds.minY - 30, this.worldBounds.maxY + 30);
 
     const zoomSpeed = 10.0;
     const zoomFactor = 1 - Math.exp(-zoomSpeed * dt);
@@ -141,10 +139,10 @@ export class Camera {
       dy *= 60;
     }
 
-    const clampedDy = Math.max(-100, Math.min(100, dy));
+    const clampedDy = clamp(dy, -100, 100);
     const zoomDelta = Math.exp(-clampedDy * 0.002);
 
-    this.targetZoom = Math.max(this.minZoom, Math.min(this.maxZoom, this.targetZoom * zoomDelta));
+    this.targetZoom = clamp(this.targetZoom * zoomDelta, this.minZoom, this.maxZoom);
   }
 
   public onTouchStart(e: TouchEvent): void {
@@ -183,7 +181,7 @@ export class Camera {
       const currentDist = Math.hypot(dx, dy) || 1;
       const ratio = currentDist / this.touchStartDist;
 
-      this.targetZoom = Math.max(this.minZoom, Math.min(this.maxZoom, this.touchStartZoom * ratio));
+      this.targetZoom = clamp(this.touchStartZoom * ratio, this.minZoom, this.maxZoom);
       this.isUserPanning = true;
     }
   }

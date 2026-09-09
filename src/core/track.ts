@@ -1,6 +1,6 @@
-import type { Point2D, TrackPoint, JunctionSwitch, SwitchState, TrackData, WorldShape, WorldSize } from './types.ts';
-import type { WorldBounds } from './camera.ts';
-import { PRNG } from './prng.ts';
+import type { Point2D, TrackPoint, JunctionSwitch, SwitchState, TrackData, WorldShape, WorldSize, WorldBounds } from '../types.ts';
+import { PRNG } from '../utils/prng.ts';
+import { catmullRom2D, binarySearchByDistance, lerp, lerpAngle, clamp, wrap, distance } from '../utils/math.ts';
 
 export interface CrossoverZone {
   switchId: string;
@@ -78,20 +78,6 @@ export class TrackNetwork {
     };
   }
 
-  private getCatmullRomPoint(p0: Point2D, p1: Point2D, p2: Point2D, p3: Point2D, t: number): Point2D {
-    const t2 = t * t;
-    const t3 = t2 * t;
-    const f0 = -0.5 * t3 + t2 - 0.5 * t;
-    const f1 = 1.5 * t3 - 2.5 * t2 + 1.0;
-    const f2 = -1.5 * t3 + 2.0 * t2 + 0.5 * t;
-    const f3 = 0.5 * t3 - 0.5 * t2;
-
-    return {
-      x: p0.x * f0 + p1.x * f1 + p2.x * f2 + p3.x * f3,
-      y: p0.y * f0 + p1.y * f1 + p2.y * f2 + p3.y * f3
-    };
-  }
-
   private sampleSpline(waypoints: Point2D[], isClosed: boolean): Point2D[] {
     const N = waypoints.length;
     const rawPoints: Point2D[] = [];
@@ -106,7 +92,7 @@ export class TrackNetwork {
 
         for (let s = 0; s < stepsPerSeg; s++) {
           const t = s / stepsPerSeg;
-          rawPoints.push(this.getCatmullRomPoint(p0, p1, p2, p3, t));
+          rawPoints.push(catmullRom2D(p0, p1, p2, p3, t));
         }
       }
     } else {
@@ -118,7 +104,7 @@ export class TrackNetwork {
 
         for (let s = 0; s < stepsPerSeg; s++) {
           const t = s / stepsPerSeg;
-          rawPoints.push(this.getCatmullRomPoint(p0, p1, p2, p3, t));
+          rawPoints.push(catmullRom2D(p0, p1, p2, p3, t));
         }
       }
       rawPoints.push(waypoints[N - 1]);
@@ -152,12 +138,12 @@ export class TrackNetwork {
 
       const pA = rawPoints[rawIdx];
       const pB = rawPoints[(rawIdx + 1) % rawPoints.length];
-      const seg = Math.hypot(pB.x - pA.x, pB.y - pA.y) || 1;
-      const t = Math.max(0, Math.min(1, (targetDist - currentDist) / seg));
+      const seg = distance(pA.x, pA.y, pB.x, pB.y) || 1;
+      const t = clamp((targetDist - currentDist) / seg, 0, 1);
 
       centerPoints.push({
-        x: pA.x + (pB.x - pA.x) * t,
-        y: pA.y + (pB.y - pA.y) * t
+        x: lerp(pA.x, pB.x, t),
+        y: lerp(pA.y, pB.y, t)
       });
     }
 
@@ -563,24 +549,9 @@ export class TrackNetwork {
   public getStaticPointAtDistance(trackId: number, s: number): { x: number; y: number; angle: number } {
     const track = this.tracks[trackId] || this.tracks[0];
     const isClosedLoop = track.isClosed;
-    const normS = isClosedLoop
-      ? ((s % track.totalLength) + track.totalLength) % track.totalLength
-      : Math.max(0, Math.min(track.totalLength, s));
+    const normS = isClosedLoop ? wrap(s, track.totalLength) : clamp(s, 0, track.totalLength);
 
-    let low = 0;
-    let high = track.points.length - 1;
-
-    while (low <= high) {
-      const mid = (low + high) >> 1;
-
-      if (track.points[mid].distance < normS) {
-        low = mid + 1;
-      } else {
-        high = mid - 1;
-      }
-    }
-
-    const idx1 = Math.max(0, low - 1);
+    const idx1 = binarySearchByDistance(track.points, normS);
     const idx2 = isClosedLoop ? (idx1 + 1) % track.points.length : Math.min(track.points.length - 1, idx1 + 1);
 
     const p1 = track.points[idx1];
@@ -597,18 +568,12 @@ export class TrackNetwork {
 
       if (dFromP1 < 0 && isClosedLoop) dFromP1 += track.totalLength;
 
-      t = Math.min(1, Math.max(0, dFromP1 / segLen));
+      t = clamp(dFromP1 / segLen, 0, 1);
     }
 
-    const x = p1.x + (p2.x - p1.x) * t;
-    const y = p1.y + (p2.y - p1.y) * t;
-
-    let da = p2.angle - p1.angle;
-
-    while (da > Math.PI) da -= 2 * Math.PI;
-    while (da < -Math.PI) da += 2 * Math.PI;
-
-    const angle = p1.angle + da * t;
+    const x = lerp(p1.x, p2.x, t);
+    const y = lerp(p1.y, p2.y, t);
+    const angle = lerpAngle(p1.angle, p2.angle, t);
 
     return { x, y, angle };
   }
@@ -617,27 +582,14 @@ export class TrackNetwork {
     zone: CrossoverZone,
     dist: number
   ): { x: number; y: number; angle: number } {
-    const clampedDist = Math.max(0, Math.min(zone.totalLength, dist));
+    const clampedDist = clamp(dist, 0, zone.totalLength);
     const pts = zone.path;
     const n = pts.length;
 
     if (n === 0) return { x: 0, y: 0, angle: 0 };
     if (n === 1) return { x: pts[0].x, y: pts[0].y, angle: pts[0].angle };
 
-    let low = 0;
-    let high = n - 1;
-
-    while (low <= high) {
-      const mid = (low + high) >> 1;
-
-      if (pts[mid].distance < clampedDist) {
-        low = mid + 1;
-      } else {
-        high = mid - 1;
-      }
-    }
-
-    const idx1 = Math.max(0, low - 1);
+    const idx1 = binarySearchByDistance(pts, clampedDist);
     const idx2 = Math.min(n - 1, idx1 + 1);
 
     if (idx1 === idx2) {
@@ -647,17 +599,12 @@ export class TrackNetwork {
     const p1 = pts[idx1];
     const p2 = pts[idx2];
     const segLen = p2.distance - p1.distance;
-    const t = segLen > 0.0001 ? Math.max(0, Math.min(1, (clampedDist - p1.distance) / segLen)) : 0;
-
-    let da = p2.angle - p1.angle;
-
-    while (da > Math.PI) da -= 2 * Math.PI;
-    while (da < -Math.PI) da += 2 * Math.PI;
+    const t = segLen > 0.0001 ? clamp((clampedDist - p1.distance) / segLen, 0, 1) : 0;
 
     return {
-      x: p1.x + (p2.x - p1.x) * t,
-      y: p1.y + (p2.y - p1.y) * t,
-      angle: p1.angle + da * t
+      x: lerp(p1.x, p2.x, t),
+      y: lerp(p1.y, p2.y, t),
+      angle: lerpAngle(p1.angle, p2.angle, t)
     };
   }
 
@@ -929,10 +876,10 @@ export class TrackNetwork {
       const dA = cumDists[rawIdx];
       const dB = cumDists[rawIdx + 1];
       const segSpan = dB - dA || 1;
-      const frac = Math.max(0, Math.min(1, (targetDist - dA) / segSpan));
+      const frac = clamp((targetDist - dA) / segSpan, 0, 1);
 
-      const x = pA.x + (pB.x - pA.x) * frac;
-      const y = pA.y + (pB.y - pA.y) * frac;
+      const x = lerp(pA.x, pB.x, frac);
+      const y = lerp(pA.y, pB.y, frac);
 
       pts.push({
         x,

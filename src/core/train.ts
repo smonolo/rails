@@ -1,5 +1,6 @@
 import { TrackNetwork, type CrossoverZone } from './track.ts';
-import type { ReverserPosition, TrainType } from './types.ts';
+import type { ReverserPosition, TrainType } from '../types.ts';
+import { clamp, wrap, angleDiff, shortestLoopDelta } from '../utils/math.ts';
 
 export interface ActiveCrossover {
   zone: CrossoverZone;
@@ -172,7 +173,7 @@ export class Train {
   }
 
   public setCarriageCount(count: number): void {
-    this.carriageCount = Math.max(0, Math.min(10, Math.round(count)));
+    this.carriageCount = clamp(Math.round(count), 0, 10);
   }
 
   public get totalTrainLength(): number {
@@ -206,9 +207,9 @@ export class Train {
 
       if (activeTrack) {
         if (activeTrack.isClosed) {
-          this.distance = ((this.distance % activeTrack.totalLength) + activeTrack.totalLength) % activeTrack.totalLength;
+          this.distance = wrap(this.distance, activeTrack.totalLength);
         } else {
-          this.distance = Math.max(15, Math.min(activeTrack.totalLength - 15, this.distance));
+          this.distance = clamp(this.distance, 15, activeTrack.totalLength - 15);
         }
       }
     }
@@ -315,7 +316,7 @@ export class Train {
 
     if (!this.isEmergencyBrakeLocked && this.reverser !== 0 && this.throttle > 0) {
       const currentMax = this.reverser > 0 ? this.maxSpeedFwd : this.maxSpeedRev;
-      const speedRatio = Math.min(1, Math.max(0, Math.abs(this.speed) / currentMax));
+      const speedRatio = clamp(Math.abs(this.speed) / currentMax, 0, 1);
       const powerCurve = Math.max(0.05, 1 - Math.pow(speedRatio, 2));
 
       tractiveAcc = this.throttle * this.currentMaxAccel * powerCurve * this.reverser;
@@ -412,10 +413,8 @@ export class Train {
             let d1 = this.distance - entry.entryDist;
 
             if (track.isClosed) {
-              if (d0 > trackLen / 2) d0 -= trackLen;
-              if (d0 < -trackLen / 2) d0 += trackLen;
-              if (d1 > trackLen / 2) d1 -= trackLen;
-              if (d1 < -trackLen / 2) d1 += trackLen;
+              d0 = shortestLoopDelta(entry.entryDist, prevDist, trackLen);
+              d1 = shortestLoopDelta(entry.entryDist, this.distance, trackLen);
             }
 
             if (d0 <= 0 && d1 > 0 && d1 < 50) {
@@ -442,10 +441,8 @@ export class Train {
             let d1 = entry.entryDist - this.distance;
 
             if (track.isClosed) {
-              if (d0 > trackLen / 2) d0 -= trackLen;
-              if (d0 < -trackLen / 2) d0 += trackLen;
-              if (d1 > trackLen / 2) d1 -= trackLen;
-              if (d1 < -trackLen / 2) d1 += trackLen;
+              d0 = shortestLoopDelta(prevDist, entry.entryDist, trackLen);
+              d1 = shortestLoopDelta(this.distance, entry.entryDist, trackLen);
             }
 
             if (d0 <= 0 && d1 > 0 && d1 < 50) {
@@ -495,15 +492,12 @@ export class Train {
         }
       }
     } else {
-      this.distance = ((this.distance % activeTrackLen) + activeTrackLen) % activeTrackLen;
+      this.distance = wrap(this.distance, activeTrackLen);
     }
 
     const pFront = this.getVehiclePosition(0, trackNet);
     const pRear = this.getVehiclePosition(this.locoLength, trackNet);
-    let da = pFront.angle - pRear.angle;
-
-    while (da > Math.PI) da -= 2 * Math.PI;
-    while (da < -Math.PI) da += 2 * Math.PI;
+    const da = angleDiff(pRear.angle, pFront.angle);
 
     const curvature = Math.abs(da) / this.locoLength;
     const v_ms = (Math.abs(this.speed) * 0.42) / 3.6;
@@ -581,11 +575,7 @@ export class Train {
     const totalLen = currentTrack.totalLength;
     let carrDist = this.facing === 1 ? this.distance - offset : this.distance + offset;
 
-    if (!currentTrack.isClosed) {
-      carrDist = Math.max(0, Math.min(totalLen, carrDist));
-    } else {
-      carrDist = ((carrDist % totalLen) + totalLen) % totalLen;
-    }
+    carrDist = !currentTrack.isClosed ? clamp(carrDist, 0, totalLen) : wrap(carrDist, totalLen);
 
     const pt = trackNet.getStaticPointAtDistance(this.trackId, carrDist);
     const angle = this.facing === 1 ? pt.angle : pt.angle + Math.PI;

@@ -1,6 +1,7 @@
-import type { Station } from './types.ts';
+import type { Station } from '../types.ts';
 import { TrackNetwork } from './track.ts';
-import { PRNG } from './prng.ts';
+import { PRNG } from '../utils/prng.ts';
+import { wrap } from '../utils/math.ts';
 
 export interface StationStatus {
   currentStation: Station | null;
@@ -151,9 +152,7 @@ export class StationManager {
     for (const stn of this.stations) {
       if (stn.trackId !== trainTrackId) continue;
 
-      let delta = (stn.distance - trainDistance) % trackLength;
-
-      if (delta < 0) delta += trackLength;
+      const delta = wrap(stn.distance - trainDistance, trackLength);
 
       if (delta > 0 && delta < minDistance) {
         minDistance = delta;
