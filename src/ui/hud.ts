@@ -23,7 +23,14 @@ export class HUD {
   public advancedSystemsMgr: AdvancedSystemsManager
   public selectedShape: WorldShape = 'O'
   public selectedSize: WorldSize = 'M'
-  public onRegenerateShape?: (shape: WorldShape, size: WorldSize) => void
+  public onRegenerateShape?: (
+    shape: WorldShape,
+    size: WorldSize,
+    seed?: string | number
+  ) => void
+
+  private seedInputEl!: HTMLInputElement
+  private btnSeedRandomEl!: HTMLElement
 
   private speedEl!: HTMLElement
   private activeSignEl!: HTMLElement
@@ -160,6 +167,10 @@ export class HUD {
       'btn-close-world-config'
     )!
     this.btnWorldRegenerateEl = document.getElementById('btn-world-regenerate')!
+    this.seedInputEl = document.getElementById(
+      'world-seed-input'
+    ) as HTMLInputElement
+    this.btnSeedRandomEl = document.getElementById('btn-seed-random')!
 
     this.advancedConfigCardEl = document.getElementById('advanced-config-card')!
     this.btnToggleAdvancedConfigEl = document.getElementById(
@@ -172,6 +183,7 @@ export class HUD {
     this.btnToggleDeadmanEl = document.getElementById('btn-toggle-deadman')!
 
     this.syncAdvancedConfigUI()
+    this.syncTrainConfigUI()
   }
 
   private setupEventListeners(): void {
@@ -196,6 +208,7 @@ export class HUD {
       e.stopPropagation()
       this.worldConfigCardEl.classList.add('hidden')
       this.advancedConfigCardEl.classList.add('hidden')
+      this.syncTrainConfigUI()
       this.trainConfigCardEl.classList.toggle('hidden')
     })
 
@@ -310,6 +323,8 @@ export class HUD {
         document.getElementById('btn-size-l')?.classList.add('active')
       if (size === 'XL')
         document.getElementById('btn-size-xl')?.classList.add('active')
+      if (size === 'XXL')
+        document.getElementById('btn-size-xxl')?.classList.add('active')
     }
 
     document
@@ -324,26 +339,41 @@ export class HUD {
     document
       .getElementById('btn-size-xl')
       ?.addEventListener('click', () => setSize('XL'))
+    document
+      .getElementById('btn-size-xxl')
+      ?.addEventListener('click', () => setSize('XXL'))
 
-    this.btnWorldRegenerateEl?.addEventListener('click', () => {
+    const triggerRegen = () => {
       this.worldConfigCardEl.classList.add('hidden')
-      this.onRegenerateShape?.(this.selectedShape, this.selectedSize)
+      const rawSeed = this.seedInputEl?.value?.trim() ?? ''
+      let seed: string | number | undefined = undefined
+
+      if (rawSeed.length > 0) {
+        seed = isNaN(Number(rawSeed)) ? rawSeed : Number(rawSeed)
+      }
+
+      this.onRegenerateShape?.(this.selectedShape, this.selectedSize, seed)
+    }
+
+    this.btnWorldRegenerateEl?.addEventListener('click', triggerRegen)
+
+    this.btnSeedRandomEl?.addEventListener('click', () => {
+      const nextRandomSeed = Math.floor(Math.random() * 900000) + 100000
+      if (this.seedInputEl) {
+        this.seedInputEl.value = String(nextRandomSeed)
+        this.seedInputEl.focus()
+      }
+    })
+
+    this.seedInputEl?.addEventListener('keydown', e => {
+      if (e.key === 'Enter') {
+        triggerRegen()
+      }
     })
 
     const setType = (type: TrainType) => {
       this.train.setTrainType(type)
-      document
-        .querySelectorAll('.type-btn')
-        .forEach(btn => btn.classList.remove('active'))
-
-      if (type === 'regional')
-        document.getElementById('btn-type-regional')?.classList.add('active')
-      if (type === 'cargo')
-        document.getElementById('btn-type-cargo')?.classList.add('active')
-      if (type === 'high_speed')
-        document.getElementById('btn-type-highspeed')?.classList.add('active')
-
-      this.updateConsistDisplay()
+      this.syncTrainConfigUI()
     }
 
     document
@@ -393,6 +423,24 @@ export class HUD {
     this.controlsModalEl.addEventListener('click', e => {
       if (e.target === this.controlsModalEl) {
         this.closeControlsModal()
+      }
+    })
+
+    this.trainConfigCardEl.addEventListener('click', e => {
+      if (e.target === this.trainConfigCardEl) {
+        this.trainConfigCardEl.classList.add('hidden')
+      }
+    })
+
+    this.worldConfigCardEl.addEventListener('click', e => {
+      if (e.target === this.worldConfigCardEl) {
+        this.worldConfigCardEl.classList.add('hidden')
+      }
+    })
+
+    this.advancedConfigCardEl.addEventListener('click', e => {
+      if (e.target === this.advancedConfigCardEl) {
+        this.advancedConfigCardEl.classList.add('hidden')
       }
     })
 
@@ -529,6 +577,20 @@ export class HUD {
     const keysPressed: Record<string, boolean> = {}
 
     window.addEventListener('keydown', e => {
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement
+      ) {
+        if (e.code === 'Escape') {
+          ;(e.target as HTMLElement).blur()
+          this.closeControlsModal()
+          this.trainConfigCardEl.classList.add('hidden')
+          this.worldConfigCardEl.classList.add('hidden')
+          this.advancedConfigCardEl.classList.add('hidden')
+        }
+        return
+      }
+
       const isRepeat = e.repeat
       keysPressed[e.code] = true
 
@@ -544,6 +606,7 @@ export class HUD {
       if (e.code === 'KeyT') {
         this.worldConfigCardEl.classList.add('hidden')
         this.advancedConfigCardEl.classList.add('hidden')
+        this.syncTrainConfigUI()
         this.trainConfigCardEl.classList.toggle('hidden')
         return
       }
@@ -732,7 +795,7 @@ export class HUD {
 
     this.clearAlert()
     this.updateLeverHandles()
-    this.updateConsistDisplay()
+    this.syncTrainConfigUI()
     this.setReverser(1)
   }
 
@@ -759,7 +822,7 @@ export class HUD {
 
     this.clearAlert()
     this.updateLeverHandles()
-    this.updateConsistDisplay()
+    this.syncTrainConfigUI()
     this.setReverser(1)
     this.advancedSystemsMgr.reset()
     this.syncAdvancedConfigUI()
@@ -833,6 +896,12 @@ export class HUD {
       document.getElementById('btn-size-l')?.classList.add('active')
     if (this.selectedSize === 'XL')
       document.getElementById('btn-size-xl')?.classList.add('active')
+    if (this.selectedSize === 'XXL')
+      document.getElementById('btn-size-xxl')?.classList.add('active')
+
+    if (this.seedInputEl && this.trackNet) {
+      this.seedInputEl.value = String(this.trackNet.seed)
+    }
   }
 
   private attemptResetAlert(): void {
@@ -845,6 +914,22 @@ export class HUD {
       this.advancedSystemsMgr.acknowledgeDeadman()
       this.clearAlert()
     }
+  }
+
+  public syncTrainConfigUI(): void {
+    document
+      .querySelectorAll('.type-btn')
+      .forEach(btn => btn.classList.remove('active'))
+
+    if (this.train.trainType === 'regional') {
+      document.getElementById('btn-type-regional')?.classList.add('active')
+    } else if (this.train.trainType === 'cargo') {
+      document.getElementById('btn-type-cargo')?.classList.add('active')
+    } else if (this.train.trainType === 'high_speed') {
+      document.getElementById('btn-type-highspeed')?.classList.add('active')
+    }
+
+    this.updateConsistDisplay()
   }
 
   public updateConsistDisplay(): void {

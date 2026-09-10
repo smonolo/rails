@@ -284,6 +284,12 @@ export class TrackNetwork {
       crossEast = 7200
       crossLen = 260
       crossGap = 90
+    } else if (size === 'XXL') {
+      totalLen = 15500
+      crossWest = 3800
+      crossEast = 11000
+      crossLen = 280
+      crossGap = 100
     }
 
     const startX = 400
@@ -392,6 +398,21 @@ export class TrackNetwork {
       crossEast = 7500
       crossLen = 260
       crossGap = 90
+    } else if (size === 'XXL') {
+      deltaY = prng.range(650, 800)
+      waypoints = [
+        { x: startX, y: centerY },
+        { x: startX + 3100, y: centerY },
+        { x: startX + 5500, y: centerY - deltaY },
+        { x: startX + 8000, y: centerY },
+        { x: startX + 10500, y: centerY + deltaY },
+        { x: startX + 12900, y: centerY },
+        { x: startX + 16000, y: centerY },
+      ]
+      crossWest = 4000
+      crossEast = 11500
+      crossLen = 280
+      crossGap = 100
     } else {
       waypoints = [
         { x: startX, y: centerY },
@@ -448,6 +469,12 @@ export class TrackNetwork {
       centerY = 2600 + prng.range(-80, 80)
       crossLen = 260
       crossGap = 90
+    } else if (size === 'XXL') {
+      baseR = prng.range(2200, 2600)
+      centerX = 6200 + prng.range(-120, 120)
+      centerY = 3500 + prng.range(-100, 100)
+      crossLen = 280
+      crossGap = 100
     }
 
     const aspectRatio = prng.range(1.35, 1.65)

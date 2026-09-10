@@ -79,8 +79,8 @@ class Game {
     this.hud.selectedShape = this.currentShape
     this.hud.selectedSize = this.currentSize
     this.hud.syncWorldConfigUI()
-    this.hud.onRegenerateShape = (shape, size) => {
-      this.regenerateWorld(undefined, shape, size)
+    this.hud.onRegenerateShape = (shape, size, seed) => {
+      this.regenerateWorld(seed, shape, size)
     }
 
     if (!this.advancedSystemsMgr.config.advancedControls) {
@@ -209,6 +209,10 @@ class Game {
     })
 
     window.addEventListener('mouseup', e => {
+      if (this.camera.isDragging !== 1) {
+        return
+      }
+
       if (performance.now() - this.lastTouchEndTime < 600) {
         this.camera.onMouseUp()
         container.style.cursor = 'grab'

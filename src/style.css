@@ -424,44 +424,29 @@ body {
   pointer-events: auto;
 }
 
-.train-config-card {
+.config-modal-content {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  width: 220px;
-}
-
-.card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.card-title {
-  font-family: var(--font-sans);
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--color-neutral-300);
+  gap: 16px;
 }
 
 .type-selector-group {
   display: flex;
-  flex-direction: column;
   width: 100%;
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid var(--color-border);
   border-radius: 6px;
-  padding: 2px;
-  gap: 2px;
+  padding: 3px;
+  gap: 4px;
 }
 
 .type-btn {
-  width: 100%;
+  flex: 1;
   border: none;
   background: transparent;
-  padding: 5px 8px;
+  padding: 9px 12px;
   font-family: var(--font-body);
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 500;
   color: var(--color-neutral-400);
   cursor: pointer;
@@ -469,7 +454,7 @@ body {
   transition:
     background-color 0.12s ease,
     color 0.12s ease;
-  text-align: left;
+  text-align: center;
 }
 
 .type-btn:hover {
@@ -490,20 +475,31 @@ body {
   width: 100%;
 }
 
+.consist-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
 .consist-label {
-  font-size: 12px;
-  color: var(--color-neutral-300);
+  font-size: 13px;
+  color: var(--color-neutral-200);
   font-weight: 500;
+}
+
+.consist-weight-label {
+  font-size: 12px;
+  color: var(--color-neutral-400);
 }
 
 .consist-stepper {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid var(--color-border);
   border-radius: 6px;
-  padding: 2px 4px;
+  padding: 4px 6px;
 }
 
 .consist-btn {
@@ -513,10 +509,10 @@ body {
   color: var(--color-sm-white);
   cursor: pointer;
   font-family: var(--font-mono);
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 700;
-  width: 22px;
-  height: 22px;
+  width: 28px;
+  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -533,33 +529,32 @@ body {
 
 .consist-val {
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 700;
-  min-width: 16px;
+  min-width: 24px;
   text-align: center;
 }
 
 .consist-weight {
   font-family: var(--font-mono);
-  font-size: 11px;
-  color: var(--color-neutral-400);
+  font-size: 12px;
+  color: var(--color-neutral-300);
 }
 
 .train-config-actions {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
+  gap: 10px;
   width: 100%;
 }
 
 .train-action-btn,
 .invert-btn {
-  width: 100%;
+  flex: 1;
   border: 1px solid var(--color-border);
   background: rgba(255, 255, 255, 0.04);
-  padding: 6px 10px;
+  padding: 9px 12px;
   font-family: var(--font-body);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--color-neutral-300);
   cursor: pointer;
@@ -592,17 +587,9 @@ body {
   align-items: center;
 }
 
-.world-config-card {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  width: 220px;
-  padding: 14px 16px;
-}
-
 .config-section-label {
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 600;
   color: var(--color-neutral-400);
   text-transform: uppercase;
@@ -610,22 +597,21 @@ body {
 
 .shape-selector-group {
   display: flex;
-  flex-direction: column;
   width: 100%;
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid var(--color-border);
   border-radius: 6px;
-  padding: 2px;
-  gap: 2px;
+  padding: 3px;
+  gap: 4px;
 }
 
 .shape-btn {
-  width: 100%;
+  flex: 1;
   border: none;
   background: transparent;
-  padding: 6px 8px;
+  padding: 9px 12px;
   font-family: var(--font-body);
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 500;
   color: var(--color-neutral-400);
   cursor: pointer;
@@ -633,7 +619,7 @@ body {
   transition:
     background-color 0.12s ease,
     color 0.12s ease;
-  text-align: left;
+  text-align: center;
 }
 
 .shape-btn:hover {
@@ -653,17 +639,17 @@ body {
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid var(--color-border);
   border-radius: 6px;
-  padding: 2px;
-  gap: 2px;
+  padding: 3px;
+  gap: 4px;
 }
 
 .size-btn {
   flex: 1;
   border: none;
   background: transparent;
-  padding: 6px 4px;
+  padding: 9px 6px;
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--color-neutral-400);
   cursor: pointer;
@@ -685,15 +671,76 @@ body {
   font-weight: 700;
 }
 
+.seed-input-group {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+
+.seed-input {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 9px 12px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--color-sm-white);
+  outline: none;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.seed-input:focus {
+  border-color: rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.seed-input::placeholder {
+  color: var(--color-neutral-500);
+}
+
+.seed-random-btn {
+  border: 1px solid var(--color-border);
+  background: rgba(255, 255, 255, 0.04);
+  padding: 0 14px;
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-neutral-300);
+  cursor: pointer;
+  border-radius: 6px;
+  transition:
+    background-color 0.12s ease,
+    color 0.12s ease,
+    border-color 0.12s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.seed-random-btn:hover {
+  background: rgba(255, 255, 255, 0.09);
+  color: var(--color-sm-white);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.seed-random-btn:active {
+  background: rgba(255, 255, 255, 0.16);
+}
+
 .world-regen-btn {
   width: 100%;
   border: 1px solid var(--color-border);
-  background: rgba(255, 255, 255, 0.06);
-  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.08);
+  padding: 10px 14px;
   font-family: var(--font-body);
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 600;
-  color: var(--color-neutral-200);
+  color: var(--color-sm-white);
   cursor: pointer;
   border-radius: 6px;
   transition:
@@ -716,20 +763,12 @@ body {
   background: rgba(255, 255, 255, 0.22);
 }
 
-.advanced-config-card {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  width: 220px;
-  padding: 14px 16px;
-}
-
 .config-toggle-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  gap: 8px;
+  gap: 12px;
 }
 
 .toggle-text-group {
@@ -740,14 +779,14 @@ body {
 
 .toggle-main-label {
   font-family: var(--font-body);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 500;
   color: var(--color-sm-white);
 }
 
 .toggle-sub-label {
   font-family: var(--font-body);
-  font-size: 10px;
+  font-size: 11px;
   color: var(--color-neutral-400);
 }
 
@@ -755,10 +794,10 @@ body {
   border: 1px solid var(--color-border);
   background: rgba(255, 255, 255, 0.06);
   color: var(--color-neutral-400);
-  padding: 4px 10px;
+  padding: 6px 14px;
   border-radius: 6px;
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   cursor: pointer;
   transition:
@@ -791,14 +830,13 @@ body {
 }
 
 .deadman-info-box {
-  font-family: var(--font-body);
-  font-size: 10px;
-  line-height: 1.4;
-  color: var(--color-neutral-400);
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid var(--color-border-subtle);
   border-radius: 6px;
-  padding: 6px 8px;
+  padding: 10px 14px;
+  font-size: 12px;
+  color: var(--color-neutral-300);
+  line-height: 1.5;
 }
 
 .hud-controls-cluster {
@@ -1206,6 +1244,7 @@ body {
   z-index: 500;
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
+  pointer-events: auto;
 }
 
 .modal-card {
@@ -1218,6 +1257,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  pointer-events: auto;
 }
 
 .modal-header {
@@ -1404,34 +1444,6 @@ body {
     align-items: flex-end;
   }
 
-  .train-config-card {
-    width: 140px;
-    padding: 10px 10px;
-    gap: 6px;
-  }
-
-  .invert-btn {
-    font-size: 10px;
-    padding: 5px 6px;
-  }
-
-  .world-config-card {
-    width: 140px;
-    padding: 10px 10px;
-    gap: 6px;
-  }
-
-  .advanced-config-card {
-    width: 150px;
-    padding: 10px 10px;
-    gap: 6px;
-  }
-
-  .world-regen-btn {
-    font-size: 10px;
-    padding: 5px 6px;
-  }
-
   .consist-row {
     flex-wrap: wrap;
     gap: 4px;
@@ -1593,18 +1605,6 @@ body {
     width: 14px;
     height: 14px;
     font-size: 8px;
-  }
-
-  .train-config-card {
-    width: 130px;
-    padding: 6px 8px;
-    gap: 4px;
-  }
-
-  .advanced-config-card {
-    width: 130px;
-    padding: 6px 8px;
-    gap: 4px;
   }
 
   #warning-banner {

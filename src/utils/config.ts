@@ -35,9 +35,9 @@ export function loadWorldConfig(): WorldConfig {
 
   let size: WorldSize = 'M'
 
-  if (urlSize && ['S', 'M', 'L', 'XL'].includes(urlSize)) {
+  if (urlSize && ['S', 'M', 'L', 'XL', 'XXL'].includes(urlSize)) {
     size = urlSize
-  } else if (storedSize && ['S', 'M', 'L', 'XL'].includes(storedSize)) {
+  } else if (storedSize && ['S', 'M', 'L', 'XL', 'XXL'].includes(storedSize)) {
     size = storedSize
   }
 

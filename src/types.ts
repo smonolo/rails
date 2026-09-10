@@ -20,7 +20,7 @@ export interface TrackData {
 
 export type WorldShape = 'I' | 'S' | 'O'
 
-export type WorldSize = 'S' | 'M' | 'L' | 'XL'
+export type WorldSize = 'S' | 'M' | 'L' | 'XL' | 'XXL'
 
 export type SignalType = 'primary' | 'secondary'
 

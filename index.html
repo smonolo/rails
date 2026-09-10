@@ -131,178 +131,6 @@
 
       <div class="hud-bottom-row">
         <div class="bottom-left-stack">
-          <div
-            class="hud-floating-card train-config-card hidden"
-            id="train-config-card"
-          >
-            <div class="card-header">
-              <span class="card-title">Train Configuration</span>
-              <button
-                class="modal-close-btn"
-                id="btn-close-train-config"
-                title="Close"
-                aria-label="Close"
-              >
-                ✕
-              </button>
-            </div>
-            <div class="type-selector-group">
-              <button
-                class="type-btn active"
-                id="btn-type-regional"
-                data-type="regional"
-              >
-                Regional
-              </button>
-              <button class="type-btn" id="btn-type-cargo" data-type="cargo">
-                Cargo
-              </button>
-              <button
-                class="type-btn"
-                id="btn-type-highspeed"
-                data-type="high_speed"
-              >
-                High-Speed
-              </button>
-            </div>
-            <div class="consist-row">
-              <span class="consist-label">Carriages</span>
-              <div class="consist-stepper">
-                <button
-                  class="consist-btn"
-                  id="btn-carr-minus"
-                  title="Remove carriage"
-                >
-                  -
-                </button>
-                <span class="consist-val" id="carr-count-val">3</span>
-                <button
-                  class="consist-btn"
-                  id="btn-carr-plus"
-                  title="Add carriage"
-                >
-                  +
-                </button>
-              </div>
-              <span class="consist-weight" id="consist-weight-val">228 t</span>
-            </div>
-            <div class="train-config-actions">
-              <button
-                class="train-action-btn"
-                id="btn-invert-train"
-                title="Invert train orientation"
-              >
-                Invert train
-              </button>
-              <button
-                class="train-action-btn"
-                id="btn-respawn-train"
-                title="Respawn train at initial position"
-              >
-                Respawn train
-              </button>
-            </div>
-          </div>
-
-          <div
-            class="hud-floating-card world-config-card hidden"
-            id="world-config-card"
-          >
-            <div class="card-header">
-              <span class="card-title">World Configuration</span>
-              <button
-                class="modal-close-btn"
-                id="btn-close-world-config"
-                title="Close"
-                aria-label="Close"
-              >
-                ✕
-              </button>
-            </div>
-            <div class="config-section-label">Shape</div>
-            <div class="shape-selector-group">
-              <button class="shape-btn" id="btn-shape-i" data-shape="I">
-                Straight
-              </button>
-              <button class="shape-btn" id="btn-shape-s" data-shape="S">
-                Curves
-              </button>
-              <button class="shape-btn active" id="btn-shape-o" data-shape="O">
-                Circle
-              </button>
-            </div>
-            <div class="config-section-label">Size</div>
-            <div class="size-selector-group">
-              <button class="size-btn" id="btn-size-s" data-size="S">S</button>
-              <button class="size-btn active" id="btn-size-m" data-size="M">
-                M
-              </button>
-              <button class="size-btn" id="btn-size-l" data-size="L">L</button>
-              <button class="size-btn" id="btn-size-xl" data-size="XL">
-                XL
-              </button>
-            </div>
-            <button
-              class="world-regen-btn"
-              id="btn-world-regenerate"
-              title="Regenerate world"
-            >
-              Regenerate world
-            </button>
-          </div>
-
-          <div
-            class="hud-floating-card advanced-config-card hidden"
-            id="advanced-config-card"
-          >
-            <div class="card-header">
-              <span class="card-title">Advanced Systems</span>
-              <button
-                class="modal-close-btn"
-                id="btn-close-advanced-config"
-                title="Close"
-                aria-label="Close"
-              >
-                ✕
-              </button>
-            </div>
-            <div class="config-toggle-row">
-              <div class="toggle-text-group">
-                <span class="toggle-main-label">Advanced Controls</span>
-                <span class="toggle-sub-label">Master system activation</span>
-              </div>
-              <button
-                class="sys-toggle-btn"
-                id="btn-toggle-advanced"
-                title="Toggle advanced controls"
-              >
-                OFF
-              </button>
-            </div>
-            <div class="config-divider"></div>
-            <div class="config-toggle-row" id="row-deadman">
-              <div class="toggle-text-group">
-                <span class="toggle-main-label">Deadman Control</span>
-                <span class="toggle-sub-label"
-                  >Vigilance safety monitoring</span
-                >
-              </div>
-              <button
-                class="sys-toggle-btn active"
-                id="btn-toggle-deadman"
-                title="Toggle deadman control"
-              >
-                ON
-              </button>
-            </div>
-            <div class="deadman-info-box">
-              <span
-                >Press <span class="key-badge">Q</span> or click the cab pedal
-                every 30s while driving to confirm alertness.</span
-              >
-            </div>
-          </div>
-
           <div class="bottom-left-buttons">
             <button
               class="hud-pill-btn"
@@ -509,6 +337,238 @@
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="train-config-card" class="modal-backdrop hidden">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h2 class="modal-title">Train Configuration</h2>
+          <button
+            class="modal-close-btn"
+            id="btn-close-train-config"
+            title="Close"
+            aria-label="Close"
+          >
+            ✕
+          </button>
+        </div>
+
+        <div class="modal-content config-modal-content">
+          <div class="config-section-label">Locomotive Type</div>
+          <div class="type-selector-group">
+            <button
+              class="type-btn active"
+              id="btn-type-regional"
+              data-type="regional"
+            >
+              Regional
+            </button>
+            <button class="type-btn" id="btn-type-cargo" data-type="cargo">
+              Cargo
+            </button>
+            <button
+              class="type-btn"
+              id="btn-type-highspeed"
+              data-type="high_speed"
+            >
+              High-Speed
+            </button>
+          </div>
+
+          <div class="consist-row">
+            <div class="consist-info">
+              <span class="consist-label">Carriages</span>
+              <span class="consist-weight-label"
+                >Weight:
+                <strong class="consist-weight" id="consist-weight-val"
+                  >228 t</strong
+                ></span
+              >
+            </div>
+            <div class="consist-stepper">
+              <button
+                class="consist-btn"
+                id="btn-carr-minus"
+                title="Remove carriage"
+              >
+                −
+              </button>
+              <span class="consist-val" id="carr-count-val">3</span>
+              <button
+                class="consist-btn"
+                id="btn-carr-plus"
+                title="Add carriage"
+              >
+                +
+              </button>
+            </div>
+          </div>
+
+          <div class="train-config-actions">
+            <button
+              class="train-action-btn"
+              id="btn-invert-train"
+              title="Invert train orientation"
+            >
+              Invert train
+            </button>
+            <button
+              class="train-action-btn"
+              id="btn-respawn-train"
+              title="Respawn train at initial position"
+            >
+              Respawn train
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="world-config-card" class="modal-backdrop hidden">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h2 class="modal-title">World Configuration</h2>
+          <button
+            class="modal-close-btn"
+            id="btn-close-world-config"
+            title="Close"
+            aria-label="Close"
+          >
+            ✕
+          </button>
+        </div>
+
+        <div class="modal-content config-modal-content">
+          <div class="config-section-label">Track Shape</div>
+          <div class="shape-selector-group">
+            <button class="shape-btn" id="btn-shape-i" data-shape="I">
+              Straight
+            </button>
+            <button class="shape-btn" id="btn-shape-s" data-shape="S">
+              Curves
+            </button>
+            <button class="shape-btn active" id="btn-shape-o" data-shape="O">
+              Circle
+            </button>
+          </div>
+
+          <div class="config-section-label">World Size</div>
+          <div class="size-selector-group">
+            <button class="size-btn" id="btn-size-s" data-size="S">S</button>
+            <button class="size-btn active" id="btn-size-m" data-size="M">
+              M
+            </button>
+            <button class="size-btn" id="btn-size-l" data-size="L">L</button>
+            <button class="size-btn" id="btn-size-xl" data-size="XL">
+              XL
+            </button>
+            <button class="size-btn" id="btn-size-xxl" data-size="XXL">
+              XXL
+            </button>
+          </div>
+
+          <div class="config-section-label">Seed</div>
+          <div class="seed-input-group">
+            <input
+              type="text"
+              class="seed-input"
+              id="world-seed-input"
+              placeholder="Enter seed number or text..."
+              autocomplete="off"
+              spellcheck="false"
+            />
+            <button
+              class="seed-random-btn"
+              id="btn-seed-random"
+              title="Generate random seed"
+              type="button"
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <polyline points="16 3 21 3 21 8" />
+                <line x1="4" y1="20" x2="21" y2="3" />
+                <polyline points="21 16 21 21 16 21" />
+                <line x1="15" y1="15" x2="21" y2="21" />
+                <line x1="4" y1="4" x2="9" y2="9" />
+              </svg>
+              <span>Random</span>
+            </button>
+          </div>
+
+          <button
+            class="world-regen-btn"
+            id="btn-world-regenerate"
+            title="Regenerate world"
+          >
+            Regenerate world
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div id="advanced-config-card" class="modal-backdrop hidden">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h2 class="modal-title">Advanced Systems</h2>
+          <button
+            class="modal-close-btn"
+            id="btn-close-advanced-config"
+            title="Close"
+            aria-label="Close"
+          >
+            ✕
+          </button>
+        </div>
+
+        <div class="modal-content config-modal-content">
+          <div class="config-toggle-row">
+            <div class="toggle-text-group">
+              <span class="toggle-main-label">Advanced Controls</span>
+              <span class="toggle-sub-label">Master system activation</span>
+            </div>
+            <button
+              class="sys-toggle-btn"
+              id="btn-toggle-advanced"
+              title="Toggle advanced controls"
+            >
+              OFF
+            </button>
+          </div>
+
+          <div class="config-divider"></div>
+
+          <div class="config-toggle-row" id="row-deadman">
+            <div class="toggle-text-group">
+              <span class="toggle-main-label">Deadman Control</span>
+              <span class="toggle-sub-label"
+                >Vigilance safety monitoring</span
+              >
+            </div>
+            <button
+              class="sys-toggle-btn active"
+              id="btn-toggle-deadman"
+              title="Toggle deadman control"
+            >
+              ON
+            </button>
+          </div>
+
+          <div class="deadman-info-box">
+            <span>
+              Press <span class="key-badge">Q</span> or click the cab pedal
+              every 30s while driving to confirm alertness.
+            </span>
           </div>
         </div>
       </div>
