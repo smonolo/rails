@@ -893,23 +893,6 @@ body {
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.45));
 }
 
-.hud-active-sign.overspeed {
-  animation: hud-sign-overspeed 0.6s ease-in-out infinite alternate;
-}
-
-.hud-active-sign.overspeed .hud-sign-svg {
-  filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.9));
-}
-
-@keyframes hud-sign-overspeed {
-  0% {
-    transform: scale(1);
-  }
-  100% {
-    transform: scale(1.12);
-  }
-}
-
 .telemetry-actions {
   display: flex;
   flex-direction: column;

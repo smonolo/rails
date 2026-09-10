@@ -947,7 +947,7 @@ export class HUD {
 
     const isOverspeed = speed > speedLimit
     this.speedEl.classList.toggle('overspeed', isOverspeed)
-    this.updateActiveSign(activeSign, isOverspeed)
+    this.updateActiveSign(activeSign)
     this.updateUpcomingSpeedSign(nextSpeedSign, speedLimit)
 
     this.updateConsistDisplay()
@@ -1098,10 +1098,8 @@ export class HUD {
     }
   }
 
-  private updateActiveSign(sign: ActiveSpeedSign, isOverspeed: boolean): void {
+  private updateActiveSign(sign: ActiveSpeedSign): void {
     if (!this.activeSignEl) return
-
-    this.activeSignEl.classList.toggle('overspeed', isOverspeed)
 
     const key = `${sign.isAdvanceWarning ? 'adv' : 'reg'}-${sign.displayVal}`
 
