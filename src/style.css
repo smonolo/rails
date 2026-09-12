@@ -110,7 +110,6 @@ body {
   border-radius: 24px;
   padding: 8px 18px;
   pointer-events: auto;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
   max-width: calc(100vw - 160px);
   white-space: nowrap;
 }
@@ -198,7 +197,6 @@ body {
   display: block;
   width: 20px;
   height: 17px;
-  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.35));
 }
 
 .badge-active {
@@ -286,7 +284,6 @@ body {
   gap: 10px;
   background: rgba(18, 18, 22, 0.88);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-radius: 9999px;
@@ -420,7 +417,6 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 14px;
   padding: 14px 16px;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
   pointer-events: auto;
 }
 
@@ -912,7 +908,6 @@ body {
 
 .speed-num.overspeed {
   color: #ef4444;
-  text-shadow: 0 0 12px rgba(239, 68, 68, 0.4);
 }
 
 .hud-active-sign {
@@ -928,7 +923,6 @@ body {
   display: block;
   width: 38px;
   height: 34px;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.45));
 }
 
 .telemetry-actions {
@@ -972,44 +966,19 @@ body {
   background: rgba(255, 255, 255, 0.18);
 }
 
-.btn-deadman.warning-visual {
+.btn-deadman.warning {
   background: #f59e0b;
   border-color: #fbbf24;
   color: #000000;
-  animation: deadmanPulse 0.9s ease-in-out infinite alternate;
 }
 
-.btn-deadman.warning-urgent {
-  background: #ef4444;
-  border-color: #f87171;
-  color: #ffffff;
-  animation: deadmanFlash 0.22s linear infinite alternate;
+.btn-deadman.warning:hover {
+  background: #fbbf24;
+  color: #000000;
 }
 
-.btn-deadman.enforced {
-  background: #b91c1c;
-  border-color: #ef4444;
-  color: #ffffff;
-}
-
-@keyframes deadmanPulse {
-  from {
-    filter: brightness(1);
-  }
-  to {
-    filter: brightness(1.28);
-  }
-}
-
-@keyframes deadmanFlash {
-  from {
-    background: #ef4444;
-    color: #ffffff;
-  }
-  to {
-    background: #7f1d1d;
-    color: #fca5a5;
-  }
+.btn-deadman.warning:active {
+  background: #d97706;
 }
 
 .btn-eb {
@@ -1017,9 +986,9 @@ body {
   height: 28px;
   box-sizing: border-box;
   padding: 0 8px;
-  background: #dc2626;
-  border: 1px solid #ef4444;
-  color: #ffffff;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: #f87171;
   border-radius: 6px;
   font-family: var(--font-mono);
   font-size: 10px;
@@ -1028,7 +997,8 @@ body {
   cursor: pointer;
   transition:
     background-color 0.15s ease,
-    border-color 0.15s ease;
+    border-color 0.15s ease,
+    color 0.15s ease;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1036,13 +1006,16 @@ body {
 }
 
 .btn-eb:hover {
-  background: #ef4444;
-  border-color: #f87171;
+  background: rgba(239, 68, 68, 0.16);
+  border-color: rgba(239, 68, 68, 0.5);
+  color: #ffffff;
 }
 
-.btn-eb:active {
-  background: #b91c1c;
-  border-color: #dc2626;
+.btn-eb:active,
+.btn-eb.active {
+  background: #dc2626;
+  border-color: #ef4444;
+  color: #ffffff;
 }
 
 .levers-card {
@@ -1156,8 +1129,7 @@ body {
   transition:
     background-color 0.15s ease,
     color 0.15s ease,
-    border-color 0.15s ease,
-    box-shadow 0.15s ease;
+    border-color 0.15s ease;
 }
 
 .rev-notch[data-pos='1'] {
@@ -1182,7 +1154,6 @@ body {
   background: #ffffff;
   color: var(--color-sm-black);
   border-color: #ffffff;
-  box-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
 }
 
 .lever-fill {
@@ -1224,7 +1195,6 @@ body {
   pointer-events: none;
   touch-action: none;
   user-select: none;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
 }
 
 .reverser-handle {
@@ -1372,7 +1342,6 @@ body {
   flex-direction: column;
   align-items: center;
   gap: 16px;
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.65);
 }
 
 .loading-spinner {

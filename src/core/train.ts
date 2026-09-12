@@ -587,7 +587,8 @@ export class Train {
       if (d >= 0) {
         const curveDist = cross.reverseCurve ? cross.zone.totalLength - d : d
         const pt = trackNet.getCrossoverPointAtDistance(cross.zone, curveDist)
-        const baseAngle = cross.reverseCurve ? pt.angle + Math.PI : pt.angle
+        const curveDir = cross.zone.fromDirection ?? 1
+        const baseAngle = curveDir === 1 ? pt.angle : pt.angle + Math.PI
 
         return {
           x: pt.x,
@@ -701,7 +702,8 @@ export class Train {
           renderY += Math.sin(pos.angle + Math.PI / 2) * (i % 2 === 0 ? 6 : -6)
         }
 
-        this.renderCarriage(ctx, renderX, renderY, renderAngle)
+        const isLastCarriage = i === this.carriageCount
+        this.renderCarriage(ctx, renderX, renderY, renderAngle, isLastCarriage)
       }
     }
 
@@ -731,6 +733,12 @@ export class Train {
     const w = this.locoLength
     const h = this.locoWidth
     const r = 3
+
+    if (this.reverser === 1) {
+      this.renderLightBeam(ctx, w / 2, 1)
+    } else if (this.carriageCount === 0 && this.reverser === -1) {
+      this.renderLightBeam(ctx, -w / 2, -1)
+    }
 
     if (this.trainType === 'cargo') {
       ctx.fillStyle = '#ffffff'
@@ -815,12 +823,6 @@ export class Train {
       ctx.moveTo(-w / 2, h / 2 - 2)
       ctx.lineTo(noseStart - 2, h / 2 - 2)
       ctx.stroke()
-
-      ctx.fillStyle = '#ffffff'
-      ctx.beginPath()
-      ctx.arc(noseFront - 1.5, -4, 1.2, 0, Math.PI * 2)
-      ctx.arc(noseFront - 1.5, 4, 1.2, 0, Math.PI * 2)
-      ctx.fill()
     } else {
       ctx.fillStyle = '#ffffff'
       this.drawRoundedRect(ctx, -w / 2, -h / 2, w, h, r)
@@ -858,6 +860,16 @@ export class Train {
       ctx.stroke()
     }
 
+    const frontLampX =
+      this.trainType === 'high_speed' ? w / 2 - 1.5 : w / 2 - 1.2
+    const isFrontWhite = this.reverser !== -1
+    this.renderLampPair(ctx, frontLampX, isFrontWhite)
+
+    if (this.carriageCount === 0) {
+      const isRearWhite = this.reverser === -1
+      this.renderLampPair(ctx, -w / 2 + 1.2, isRearWhite)
+    }
+
     ctx.restore()
   }
 
@@ -865,7 +877,8 @@ export class Train {
     ctx: CanvasRenderingContext2D,
     x: number,
     y: number,
-    angle: number
+    angle: number,
+    isLastCarriage: boolean = false
   ): void {
     ctx.save()
     ctx.translate(x, y)
@@ -874,6 +887,10 @@ export class Train {
     const w = this.carriageLength
     const h = this.carriageWidth
     const r = 3
+
+    if (isLastCarriage && this.reverser === -1) {
+      this.renderLightBeam(ctx, -w / 2, -1)
+    }
 
     if (this.trainType === 'cargo') {
       ctx.fillStyle = '#ffffff'
@@ -930,6 +947,11 @@ export class Train {
       }
     }
 
+    if (isLastCarriage) {
+      const isRearWhite = this.reverser === -1
+      this.renderLampPair(ctx, -w / 2 + 1.2, isRearWhite)
+    }
+
     ctx.restore()
   }
 
@@ -948,5 +970,55 @@ export class Train {
     ctx.arcTo(x, y + h, x, y, r)
     ctx.arcTo(x, y, x + w, y, r)
     ctx.closePath()
+  }
+
+  private renderLightBeam(
+    ctx: CanvasRenderingContext2D,
+    originX: number,
+    direction: 1 | -1
+  ): void {
+    const beamLen = 110
+    const endX = originX + beamLen * direction
+    const grad = ctx.createLinearGradient(originX, 0, endX, 0)
+    grad.addColorStop(0, 'rgba(255, 255, 245, 0.18)')
+    grad.addColorStop(0.35, 'rgba(255, 255, 245, 0.08)')
+    grad.addColorStop(0.7, 'rgba(255, 255, 245, 0.02)')
+    grad.addColorStop(1, 'rgba(255, 255, 245, 0)')
+
+    ctx.save()
+    ctx.fillStyle = grad
+    ctx.beginPath()
+    ctx.moveTo(originX, -5)
+    ctx.lineTo(endX, -18)
+    ctx.lineTo(endX, 18)
+    ctx.lineTo(originX, 5)
+    ctx.closePath()
+    ctx.fill()
+    ctx.restore()
+  }
+
+  private renderLampPair(
+    ctx: CanvasRenderingContext2D,
+    x: number,
+    isWhite: boolean
+  ): void {
+    const haloColor = isWhite
+      ? 'rgba(255, 255, 255, 0.25)'
+      : 'rgba(239, 68, 68, 0.3)'
+    const coreColor = isWhite ? '#ffffff' : '#ef4444'
+
+    ctx.save()
+    ctx.fillStyle = haloColor
+    ctx.beginPath()
+    ctx.arc(x, -3.8, 2.2, 0, Math.PI * 2)
+    ctx.arc(x, 3.8, 2.2, 0, Math.PI * 2)
+    ctx.fill()
+
+    ctx.fillStyle = coreColor
+    ctx.beginPath()
+    ctx.arc(x, -3.8, 1.3, 0, Math.PI * 2)
+    ctx.arc(x, 3.8, 1.3, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.restore()
   }
 }

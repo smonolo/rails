@@ -65,7 +65,6 @@ export class HUD {
   private btnEb!: HTMLElement
 
   private btnDeadmanEl!: HTMLElement
-  private deadmanLampTextEl!: HTMLElement
 
   private trainConfigCardEl!: HTMLElement
   private btnToggleTrainConfigEl!: HTMLElement
@@ -149,7 +148,6 @@ export class HUD {
     this.btnEb = document.getElementById('btn-eb')!
 
     this.btnDeadmanEl = document.getElementById('btn-deadman')!
-    this.deadmanLampTextEl = document.getElementById('deadman-lamp-text')!
 
     this.trainConfigCardEl = document.getElementById('train-config-card')!
     this.btnToggleTrainConfigEl = document.getElementById(
@@ -1150,36 +1148,24 @@ export class HUD {
     const actualBrakePct = Math.round(this.train.brake * 100)
     this.brakeFillEl.style.height = `${actualBrakePct}%`
 
+    this.btnEb.classList.toggle('active', this.train.isEmergencyBrakeLocked)
+
     const deadmanStatus = this.advancedSystemsMgr.getDeadmanStatus(
       this.train.speedKmH
     )
 
     if (deadmanStatus.enabled) {
       this.btnDeadmanEl.classList.remove('hidden')
-      this.btnDeadmanEl.classList.toggle(
-        'warning-visual',
-        deadmanStatus.stage === 'visual'
-      )
-      this.btnDeadmanEl.classList.toggle(
-        'warning-urgent',
-        deadmanStatus.stage === 'urgent'
-      )
-      this.btnDeadmanEl.classList.toggle(
-        'enforced',
-        deadmanStatus.stage === 'enforced'
-      )
 
-      if (deadmanStatus.stage === 'enforced') {
-        this.deadmanLampTextEl.textContent = 'BRAKE'
-      } else if (deadmanStatus.stage === 'urgent') {
-        this.deadmanLampTextEl.textContent = 'ALARM!'
-      } else if (deadmanStatus.stage === 'visual') {
-        this.deadmanLampTextEl.textContent = 'ALERT'
-      } else {
-        this.deadmanLampTextEl.textContent = 'DEADMAN'
-      }
+      const requiresImmediateAction =
+        !deadmanStatus.enforced &&
+        !this.train.isEmergencyBrakeLocked &&
+        (deadmanStatus.stage === 'visual' || deadmanStatus.stage === 'urgent')
+
+      this.btnDeadmanEl.classList.toggle('warning', requiresImmediateAction)
     } else {
       this.btnDeadmanEl.classList.add('hidden')
+      this.btnDeadmanEl.classList.remove('warning')
     }
   }
 
